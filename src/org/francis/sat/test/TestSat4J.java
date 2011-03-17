@@ -36,7 +36,18 @@ public class TestSat4J {
     static final int NBCLAUSES = Math.round(((float)MAXVAR)*4.25f);// 425;
     static final int FILE_NUM = 3;
     
-    public static void main(String[] args) throws IOException {
+    public static void main(String[] args) throws Exception {
+        createTimedFormula(args);
+//        runCNFDir(args);
+    }
+    
+    public static void runOneProblem() throws IOException {
+        WatchedFormulaFactory formulaFactory = new WatchedFormulaFactory();
+        generateFormulaeList(50, 400, formulaFactory);
+        runMySolversSMPThreaded(new WatchedSolverFactory(),formulaFactory,1,2,1024,null,true,350000);
+    }
+    
+    public static void runCNFDir(String[] args) throws IOException {
         int processorCount = Integer.parseInt(args[0]);
         int initHibernate = 2;
         int maxHibernate = 1024;
@@ -151,7 +162,7 @@ public class TestSat4J {
             else {
                 continue;
             }
-            File newCnfFile = new File(path+"/"+count+"_VIII.cnf.txt");
+            File newCnfFile = new File(path+"/"+count+"_I.cnf.txt");
             DimacsWriter.writeInstance(newCnfFile, formulaFactory);
 //                WatchedFormulaFactory formulaFactoryFile = new WatchedFormulaFactory();
 //                org.francis.sat.io.DimacsReader.parseInstance(newCnfFile,formulaFactoryFile);

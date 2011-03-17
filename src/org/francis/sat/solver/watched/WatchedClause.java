@@ -18,7 +18,7 @@ public class WatchedClause extends Clause implements Serializable{
     public static final int MADE_UNSAT = -4;
     
     private static final int watchOne = 0;
-    private static final int watchTwo = 2;
+    private static final int watchTwo = 1;
     final private int[] literals;
     private final WatchedFormula formula;
 
@@ -63,7 +63,7 @@ public class WatchedClause extends Clause implements Serializable{
         int watchIndex = Clause.getVariable(literals[watchOne]) == var ? watchOne : watchTwo;
         for (int i = 2; i < literals.length; i++) {
             int newLiteral = literals[i];
-            if (!formula.isConflicted(literal)) {
+            if (!formula.isConflicted(newLiteral)) {
                 int oldLiteral = literals[watchIndex];
                 literals[watchIndex] = newLiteral;
                 literals[i] = oldLiteral;
