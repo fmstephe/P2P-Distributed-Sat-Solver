@@ -1,11 +1,13 @@
 package org.francis.sat.test;
 
+import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileFilter;
 import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.Writer;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -37,8 +39,10 @@ public class TestSat4J {
     static final int FILE_NUM = 3;
     
     public static void main(String[] args) throws Exception {
-        createTimedFormula(args);
-//        runCNFDir(args);
+//        createTimedFormula(args);
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        br.readLine();
+        runCNFDir(args);
     }
     
     public static void runOneProblem() throws IOException {
