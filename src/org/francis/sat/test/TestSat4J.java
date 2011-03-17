@@ -115,7 +115,7 @@ public class TestSat4J {
 //        runSat4J(cnfDirPath);
 //        compareWithSat4J(new WatchedSolverFactory(),new WatchedFormulaFactory(),16);
         int count = 0;
-        int varNum = 160;
+        int varNum = 120;
         int clauseNum = Math.round(((float)varNum)*4.25f);
         WatchedFormulaFactory formulaFactory = null;
         while (count < 30) {
@@ -124,7 +124,7 @@ public class TestSat4J {
             formulaFactory = new WatchedFormulaFactory();
             generateFormulaeList(varNum, clauseNum, formulaFactory);
             System.out.println(varNum+", "+clauseNum);
-            long runTime = runMySolversSMPThreaded(new WatchedSolverFactory(),formulaFactory,threads,2,1024,null,true,350000);
+            long runTime = runMySolversSMPThreaded(new WatchedSolverFactory(),formulaFactory,threads,2,1024,null,true,20000);
             String path = null;
             if (runTime > 10000 && runTime < 20000) {
                 path = tenToTwentySeconds;
@@ -162,7 +162,7 @@ public class TestSat4J {
             else {
                 continue;
             }
-            File newCnfFile = new File(path+"/"+count+"_I.cnf.txt");
+            File newCnfFile = new File(path+"/"+count+"_II.cnf.txt");
             DimacsWriter.writeInstance(newCnfFile, formulaFactory);
 //                WatchedFormulaFactory formulaFactoryFile = new WatchedFormulaFactory();
 //                org.francis.sat.io.DimacsReader.parseInstance(newCnfFile,formulaFactoryFile);
@@ -268,7 +268,7 @@ public class TestSat4J {
     }
     
     public static File ensureDir(String path) {
-        System.out.println(path);
+//        System.out.println(path);
         String[] dirs = path.split("/");
         String currentPath = "";
         File currentDir = null;
