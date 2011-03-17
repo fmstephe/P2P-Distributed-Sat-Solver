@@ -17,8 +17,8 @@ public class WatchedClause extends Clause implements Serializable{
     public static final int MADE_SAT = -3;
     public static final int MADE_UNSAT = -4;
     
-    int watchOne;
-    int watchTwo;
+    private static final int watchOne = 0;
+    private static final int watchTwo = 1;
     final private int[] literals;
     private final WatchedFormula formula;
 
@@ -31,15 +31,13 @@ public class WatchedClause extends Clause implements Serializable{
             this.literals[index] = literal;
             index++;
         }
-        watchOne = 0;
-        watchTwo = 1;
     }
 
     public int[] getWatchedLiterals() {
         return new int[] {literals[watchOne],literals[watchTwo]};
     }
     
-    // NB: Caller should be certain that this clause is (or recently was) unit
+    // NB: Caller must be certain that this clause is (or recently was) unit
     public int getUnitLiteral() {
         if (literals.length == 1) return literals[0];
         boolean watchOneCon = formula.isConflicted(literals[watchOne]);
@@ -62,36 +60,18 @@ public class WatchedClause extends Clause implements Serializable{
         assert Clause.getVariable(literals[watchOne]) == Clause.getVariable(literal) || Clause.getVariable(literals[watchTwo]) == Clause.getVariable(literal);
         int var = Clause.getVariable(literal);
         if (literal == literals[watchOne] || literal == literals[watchTwo]) return WATCH_UNCHANGED;
-        if (Clause.getVariable(literals[watchOne]) == var) {
-            int newWatch = watchOne;
-            while(true) {
-                newWatch = (newWatch+1)%literals.length;
-                if (newWatch == watchTwo) continue;
-                if (newWatch == watchOne) {
-                    if (isUnit()) return MADE_UNIT;
-                    return WATCH_UNCHANGED;
-                }
-                if (formula.isIndetermined(literals[newWatch]) || formula.isSatisfied(literals[newWatch])) {
-                    watchOne = newWatch;
-                    return literals[watchOne];
-                }
+        int watchIndex = Clause.getVariable(literals[watchOne]) == var ? watchOne : watchTwo;
+        for (int i = 2; i < literals.length; i++) {
+            int newLiteral = literals[i];
+            if (!formula.isConflicted(newLiteral)) {
+                int oldLiteral = literals[watchIndex];
+                literals[watchIndex] = newLiteral;
+                literals[i] = oldLiteral;
+                return newLiteral;
             }
         }
-        else { // Clause.getVariable(literals[watchTwo]) == var
-            int newWatch = watchTwo;
-            while(true) {
-                newWatch = (newWatch+1)%literals.length;
-                if (newWatch == watchOne) continue;
-                if (newWatch == watchTwo) {
-                    if (isUnit()) return MADE_UNIT;
-                    return WATCH_UNCHANGED;
-                }
-                if (formula.isIndetermined(literals[newWatch]) || formula.isSatisfied(literals[newWatch])) {
-                    watchTwo = newWatch;
-                    return literals[watchTwo];
-                }
-            }
-        }
+        if (isUnit()) return MADE_UNIT;
+        return WATCH_UNCHANGED;
     }
     
     public String toString() {
@@ -128,7 +108,7 @@ public class WatchedClause extends Clause implements Serializable{
     public List<Integer> getDimacsClause() {
         List<Integer> dimacsClause = new ArrayList<Integer>(literals.length);
         for (int literal : this.literals) {
-            dimacsClause.add(this.getDimacs(literal));
+            dimacsClause.add(Clause.getDimacs(literal));
         }
         return dimacsClause;
     }
