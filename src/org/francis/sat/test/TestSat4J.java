@@ -257,7 +257,7 @@ public class TestSat4J {
     }
     
     public static File ensureDir(String path) {
-        System.out.println(path);
+//        System.out.println(path);
         String[] dirs = path.split("/");
         String currentPath = "";
         File currentDir = null;
