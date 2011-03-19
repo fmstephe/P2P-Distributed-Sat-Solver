@@ -39,8 +39,8 @@ public class TestSat4J {
     public static void main(String[] args) throws Exception {
         long startTime = System.currentTimeMillis();
 //        runOneProblem();
-        createTimedFormula(args);
-//        runCNFDir(args);
+//        createTimedFormula(args);
+        runCNFDir(args);
         long totalTime = System.currentTimeMillis() - startTime;
         System.out.println(totalTime/1000);
     }
@@ -48,7 +48,7 @@ public class TestSat4J {
     public static void runOneProblem() throws IOException {
         WatchedFormulaFactory formulaFactory = new WatchedFormulaFactory();
         generateFormulaeList(50, 400, formulaFactory);
-        runMySolversSMPThreaded(new WatchedSolverFactory(),formulaFactory,1,2,1024,null,true,350000);
+        compareWithSat4J(new WatchedSolverFactory(),formulaFactory,8,2,1024,null,null);
     }
     
     public static void runCNFDir(String[] args) throws IOException {
@@ -116,6 +116,12 @@ public class TestSat4J {
         ensureDir(oneTwentyToOneSixtySeconds);
         String oneSixtyToThreeFiftySeconds = workingPath+"/cnf/oneSixtyToThreeFiftySeconds";
         ensureDir(oneSixtyToThreeFiftySeconds);
+        String threeFiftyToSixHundredSeconds = workingPath+"/cnf/threeFiftyToSixHundredSeconds";
+        ensureDir(threeFiftyToSixHundredSeconds);
+        String sixHundredToOneThousandSeconds = workingPath+"/cnf/sixHundredToOneThousandSeconds";
+        ensureDir(sixHundredToOneThousandSeconds);
+        String oneThousandToTwoThousandSeconds = workingPath+"/cnf/oneThousandToTwoThousandSeconds";
+        ensureDir(oneThousandToTwoThousandSeconds);
 //        generateFormulaeFile(cnfDirPath);
         int threads = Integer.parseInt(args[0]);
 //        runSat4J(cnfDirPath);
@@ -124,13 +130,15 @@ public class TestSat4J {
         int varNum = 100;
         int clauseNum = Math.round(((float)varNum)*4.25f);
         WatchedFormulaFactory formulaFactory = null;
-        while (count < 30) {
+        Random rnd = new Random();
+        while (count < 300) {
 //            varNum++;
+            varNum = rnd.nextInt(120)+150;      
             clauseNum = Math.round(((float)varNum)*4.25f);
             formulaFactory = new WatchedFormulaFactory();
             generateFormulaeList(varNum, clauseNum, formulaFactory);
             System.out.println(varNum+", "+clauseNum);
-            long runTime = runMySolversSMPThreaded(new WatchedSolverFactory(),formulaFactory,threads,2,1024,null,true,20000);
+            long runTime = runMySolversSMPThreaded(new WatchedSolverFactory(),formulaFactory,threads,2,1024,null,true,2000001);
             String path = null;
             if (runTime < 10000) {
                 path = lessThanTenSeconds;
@@ -168,10 +176,19 @@ public class TestSat4J {
             else if (runTime > 160000 && runTime < 350000) {
                 path = oneSixtyToThreeFiftySeconds;
             }
+            else if (runTime > 350000 && runTime < 600000) {
+                path = threeFiftyToSixHundredSeconds;
+            }
+            else if (runTime > 600000 && runTime < 1000000) {
+                path = sixHundredToOneThousandSeconds;
+            }
+            else if (runTime > 1000000 && runTime < 2000000) {
+                path = oneThousandToTwoThousandSeconds;
+            }
             else {
                 continue;
             }
-            File newCnfFile = new File(path+"/"+count+"_III.cnf.txt");
+            File newCnfFile = new File(path+"/"+count+"_XXX.cnf.txt");
             System.out.println(newCnfFile.toString());
             DimacsWriter.writeInstance(newCnfFile, formulaFactory);
 //                WatchedFormulaFactory formulaFactoryFile = new WatchedFormulaFactory();

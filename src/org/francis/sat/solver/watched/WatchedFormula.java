@@ -8,7 +8,7 @@ import java.util.List;
 
 import org.francis.sat.solver.BooleanFormula;
 import org.francis.sat.solver.Clause;
-import org.francis.sat.solver.IntHeap;
+import org.francis.sat.solver.PriorityIntHeap;
 import org.francis.sat.solver.WorkSharer;
 
 public class WatchedFormula implements BooleanFormula, WorkSharer, Serializable {
@@ -20,7 +20,7 @@ public class WatchedFormula implements BooleanFormula, WorkSharer, Serializable 
     private final List<WatchedClause>[] watchedClauseArray;
     private final List<WatchedClause> initUnitClauses;
     private WorkPath path;
-    protected final IntHeap freeVars;
+    protected final PriorityIntHeap freeVars;
     private boolean isTriviallyUnsat = false;
     
     @SuppressWarnings("unchecked")
@@ -33,7 +33,7 @@ public class WatchedFormula implements BooleanFormula, WorkSharer, Serializable 
             watchedClauseArray[i] = new ArrayList<WatchedClause>();
         }
         this.varVals = new byte[varNum+1];
-        this.freeVars = new IntHeap(varNum);
+        this.freeVars = new PriorityIntHeap(varNum);
     }
     
     public void init() {
