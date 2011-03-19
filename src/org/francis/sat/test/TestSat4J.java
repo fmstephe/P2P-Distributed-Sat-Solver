@@ -1,13 +1,11 @@
 package org.francis.sat.test;
 
-import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileFilter;
 import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.io.Writer;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -39,10 +37,12 @@ public class TestSat4J {
     static final int FILE_NUM = 3;
     
     public static void main(String[] args) throws Exception {
-//        createTimedFormula(args);
-        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
-        br.readLine();
-        runCNFDir(args);
+        long startTime = System.currentTimeMillis();
+//        runOneProblem();
+        createTimedFormula(args);
+//        runCNFDir(args);
+        long totalTime = System.currentTimeMillis() - startTime;
+        System.out.println(totalTime/1000);
     }
     
     public static void runOneProblem() throws IOException {
@@ -92,6 +92,8 @@ public class TestSat4J {
     public static void createTimedFormula(String[] args) throws IOException {
         System.out.println(MAXVAR+" "+NBCLAUSES);
         String workingPath = System.getProperty("user.dir");
+        String lessThanTenSeconds = workingPath+"/cnf/lessThanTenSeconds";
+        ensureDir(lessThanTenSeconds);
         String tenToTwentySeconds = workingPath+"/cnf/tenToTwentySeconds";
         ensureDir(tenToTwentySeconds);
         String twentyToThirtySeconds = workingPath+"/cnf/twentyToThirtySeconds";
@@ -119,7 +121,7 @@ public class TestSat4J {
 //        runSat4J(cnfDirPath);
 //        compareWithSat4J(new WatchedSolverFactory(),new WatchedFormulaFactory(),16);
         int count = 0;
-        int varNum = 120;
+        int varNum = 100;
         int clauseNum = Math.round(((float)varNum)*4.25f);
         WatchedFormulaFactory formulaFactory = null;
         while (count < 30) {
@@ -130,7 +132,10 @@ public class TestSat4J {
             System.out.println(varNum+", "+clauseNum);
             long runTime = runMySolversSMPThreaded(new WatchedSolverFactory(),formulaFactory,threads,2,1024,null,true,20000);
             String path = null;
-            if (runTime > 10000 && runTime < 20000) {
+            if (runTime < 10000) {
+                path = lessThanTenSeconds;
+            }
+            else if (runTime > 10000 && runTime < 20000) {
                 path = tenToTwentySeconds;
             }
             else if (runTime > 20000 && runTime < 30000) {
@@ -166,7 +171,8 @@ public class TestSat4J {
             else {
                 continue;
             }
-            File newCnfFile = new File(path+"/"+count+"_II.cnf.txt");
+            File newCnfFile = new File(path+"/"+count+"_III.cnf.txt");
+            System.out.println(newCnfFile.toString());
             DimacsWriter.writeInstance(newCnfFile, formulaFactory);
 //                WatchedFormulaFactory formulaFactoryFile = new WatchedFormulaFactory();
 //                org.francis.sat.io.DimacsReader.parseInstance(newCnfFile,formulaFactoryFile);
