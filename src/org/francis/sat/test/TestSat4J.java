@@ -39,10 +39,11 @@ public class TestSat4J {
     static final int FILE_NUM = 3;
     
     public static void main(String[] args) throws Exception {
+        long startTime = System.currentTimeMillis();
 //        createTimedFormula(args);
-        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
-        br.readLine();
         runCNFDir(args);
+        long totalTime = System.currentTimeMillis() - startTime;
+        System.out.println(totalTime/1000);
     }
     
     public static void runOneProblem() throws IOException {
