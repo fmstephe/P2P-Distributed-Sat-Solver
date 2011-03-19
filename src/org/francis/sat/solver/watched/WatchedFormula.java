@@ -1,9 +1,5 @@
 package org.francis.sat.solver.watched;
 
-import gnu.trove.iterator.TIntIterator;
-import gnu.trove.set.TIntSet;
-import gnu.trove.set.hash.TIntHashSet;
-
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -12,6 +8,7 @@ import java.util.List;
 
 import org.francis.sat.solver.BooleanFormula;
 import org.francis.sat.solver.Clause;
+import org.francis.sat.solver.PriorityIntHeap;
 import org.francis.sat.solver.WorkSharer;
 
 public class WatchedFormula implements BooleanFormula, WorkSharer, Serializable {
@@ -23,7 +20,7 @@ public class WatchedFormula implements BooleanFormula, WorkSharer, Serializable 
     private final List<WatchedClause>[] watchedClauseArray;
     private final List<WatchedClause> initUnitClauses;
     private WorkPath path;
-    protected final TIntSet freeVars;
+    protected final PriorityIntHeap freeVars;
     private boolean isTriviallyUnsat = false;
     
     @SuppressWarnings("unchecked")
@@ -36,13 +33,13 @@ public class WatchedFormula implements BooleanFormula, WorkSharer, Serializable 
             watchedClauseArray[i] = new ArrayList<WatchedClause>();
         }
         this.varVals = new byte[varNum+1];
-        this.freeVars = new TIntHashSet(varNum);
+        this.freeVars = new PriorityIntHeap(varNum);
     }
     
     public void init() {
         this.path = new WorkPath(this,varNum);
-        for (int i = 1; i < varVals.length; i++) {
-            freeVars.add(i);
+        for (int i = 1; i <= varNum; i++) {
+            freeVars.insert(i);
         }
         for (int i = 1; i < varVals.length; i++) {
             varVals[i] = 0;
@@ -74,8 +71,7 @@ public class WatchedFormula implements BooleanFormula, WorkSharer, Serializable 
     }
     
     public int chooseVariable() {
-        TIntIterator itr = freeVars.iterator();
-        return itr.next();
+        return freeVars.peek();
     }
     
     private boolean unitPropogation(List<WatchedClause> unitClauses) {
@@ -134,7 +130,7 @@ public class WatchedFormula implements BooleanFormula, WorkSharer, Serializable 
     protected void setLiteral(int literal, boolean branchable, boolean unit, List<WatchedClause> unitClauses) {
         assert checkState();
         int var = Clause.getVariable(literal);
-        freeVars.remove(var);
+        freeVars.delete(var);
         varVals[var] = literal%2 == 0 ? (byte)1 : (byte)-1;
         path.addToPath(literal, branchable, unit);
         List<WatchedClause> watchedClauses = watchedClauseArray[var];
@@ -155,7 +151,7 @@ public class WatchedFormula implements BooleanFormula, WorkSharer, Serializable 
     
     protected void setLiteralForNewPath(int literal, boolean branchable) {
         int var = Clause.getVariable(literal);
-        freeVars.remove(var);
+        freeVars.delete(var);
         varVals[var] = literal%2 == 0 ? (byte)1 : (byte)-1;
         List<WatchedClause> watchedClauses = watchedClauseArray[var];
         Iterator<WatchedClause> itr = watchedClauses.iterator();
@@ -186,7 +182,7 @@ public class WatchedFormula implements BooleanFormula, WorkSharer, Serializable 
 
     public void resetLiteral(int literal) {
         int var = Clause.getVariable(literal);
-        freeVars.add(var);
+        freeVars.insert(var);
         varVals[var] = 0;
     }
 
