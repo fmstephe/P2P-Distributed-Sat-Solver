@@ -1,0 +1,6 @@
+*.cnf
+*.log
+*.class
+cnf/**/*
+bin/**/*
+logs/**/*
