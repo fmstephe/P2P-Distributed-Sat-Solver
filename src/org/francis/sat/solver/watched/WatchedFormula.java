@@ -3,8 +3,10 @@ package org.francis.sat.solver.watched;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 
 import org.francis.sat.solver.BooleanFormula;
 import org.francis.sat.solver.Clause;
@@ -19,6 +21,7 @@ public class WatchedFormula implements BooleanFormula, WorkSharer, Serializable 
     private final byte[] varVals;
     private final List<WatchedClause>[] watchedClauseArray;
     private final List<WatchedClause> initUnitClauses;
+    private final List<WatchedClause> initSatClauses;
     private WorkPath path;
     protected final PriorityIntHeap freeVars;
     private boolean isTriviallyUnsat = false;
@@ -28,6 +31,7 @@ public class WatchedFormula implements BooleanFormula, WorkSharer, Serializable 
         this.varNum = varNum;
         this.clauseNum = clauseNum;
         this.initUnitClauses = new ArrayList<WatchedClause>();
+        this.initSatClauses = new ArrayList<WatchedClause>();
         this.watchedClauseArray = new List[varNum+1];
         for (int i = 1; i < watchedClauseArray.length; i++) {
             watchedClauseArray[i] = new ArrayList<WatchedClause>();
@@ -40,6 +44,16 @@ public class WatchedFormula implements BooleanFormula, WorkSharer, Serializable 
         this.path = new WorkPath(this,varNum);
         for (int i = 1; i <= varNum; i++) {
             freeVars.insert(i);
+        }
+        for (int i = 1; i < watchedClauseArray.length;i++) {
+            List<WatchedClause> clauses = watchedClauseArray[i];
+            for (WatchedClause clause : clauses) {
+                int[] literals = clause.getLiterals();
+                for (int literal : literals) {
+                    int var = Clause.getVariable(literal);
+                    freeVars.incPriority(var, 1d);
+                }
+            }
         }
         for (int i = 1; i < varVals.length; i++) {
             varVals[i] = 0;
@@ -56,7 +70,7 @@ public class WatchedFormula implements BooleanFormula, WorkSharer, Serializable 
         WatchedClause newClause = new WatchedClause(literals,this);
         int check = newClause.preCheck();
         if (check == WatchedClause.MADE_SAT) {
-            return;
+            initSatClauses.add(newClause);
         }
         else if (check == WatchedClause.MADE_UNIT) {
             initUnitClauses.add(newClause);
@@ -236,16 +250,24 @@ public class WatchedFormula implements BooleanFormula, WorkSharer, Serializable 
 
     @Override
     public List<List<Integer>> getDimacsClauses() {
-        List<List<Integer>> clauses = new ArrayList<List<Integer>>();
+        Set<WatchedClause> clauseSet = new HashSet<WatchedClause>();
         for (List<WatchedClause> watchedClauses : watchedClauseArray) {
             if (watchedClauses == null) continue;
             for (WatchedClause watchedClause : watchedClauses) {
-                clauses.add(watchedClause.getDimacsClause());
+                clauseSet.add(watchedClause);
             }
+        }
+        List<List<Integer>> clauses = new ArrayList<List<Integer>>();
+        for (WatchedClause watchedClause : clauseSet) {
+            clauses.add(watchedClause.getDimacsClause());
         }
         for (WatchedClause watchedClause : initUnitClauses) {
             clauses.add(watchedClause.getDimacsClause());
         }
+        for (WatchedClause watchedClause : initSatClauses) {
+            clauses.add(watchedClause.getDimacsClause());
+        }
+        assert clauses.size() == clauseNum;
         return clauses;
     }
 }

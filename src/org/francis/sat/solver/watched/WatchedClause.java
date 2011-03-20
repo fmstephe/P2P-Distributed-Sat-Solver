@@ -112,4 +112,10 @@ public class WatchedClause extends Clause implements Serializable{
         }
         return dimacsClause;
     }
+    
+    public int[] getLiterals() {
+        int[] copyLiterals = new int[literals.length];
+        System.arraycopy(literals, 0, copyLiterals, 0, literals.length);
+        return copyLiterals;
+    }
 }
