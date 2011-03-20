@@ -9,7 +9,6 @@ import java.io.IOException;
 import java.io.Writer;
 import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Random;
 import java.util.Set;
 
@@ -39,8 +38,8 @@ public class TestSat4J {
     public static void main(String[] args) throws Exception {
         long startTime = System.currentTimeMillis();
 //        runOneProblem();
-//        createTimedFormula(args);
-        runCNFDir(args);
+        if (args.length == 4) createTimedFormula(args);
+        if (args.length == 1) runCNFDir(args);
         long totalTime = System.currentTimeMillis() - startTime;
         System.out.println(totalTime/1000);
     }
@@ -80,7 +79,8 @@ public class TestSat4J {
                 File runLoggingDir = ensureDir(formulaLoggingDir+"/"+threads);
                 WatchedFormulaFactory formulaFactory = new WatchedFormulaFactory();
                 org.francis.sat.io.DimacsReader.parseInstance(formulaFile,formulaFactory);
-                runMySolversSMPThreaded(new WatchedSolverFactory(),formulaFactory,threads,initHibernate,maxHibernate,runLoggingDir,true,1200000);
+//                runMySolversSMPThreaded(new WatchedSolverFactory(),formulaFactory,threads,initHibernate,maxHibernate,runLoggingDir,true,1200000);
+                compareWithSat4J(new WatchedSolverFactory(),new WatchedFormulaFactory(),threads,initHibernate,maxHibernate,formulaFile,null);
             }
         }
     }
@@ -90,7 +90,10 @@ public class TestSat4J {
      * @throws IOException
      */
     public static void createTimedFormula(String[] args) throws IOException {
-        System.out.println(MAXVAR+" "+NBCLAUSES);
+        int threads = Integer.parseInt(args[0]);
+        int staticVarNum = Integer.parseInt(args[1]);
+        int randomVarNum = Integer.parseInt(args[2]);
+        String fileAppend =args[3];
         String workingPath = System.getProperty("user.dir");
         String lessThanTenSeconds = workingPath+"/cnf/lessThanTenSeconds";
         ensureDir(lessThanTenSeconds);
@@ -123,18 +126,15 @@ public class TestSat4J {
         String oneThousandToTwoThousandSeconds = workingPath+"/cnf/oneThousandToTwoThousandSeconds";
         ensureDir(oneThousandToTwoThousandSeconds);
 //        generateFormulaeFile(cnfDirPath);
-        int threads = Integer.parseInt(args[0]);
 //        runSat4J(cnfDirPath);
 //        compareWithSat4J(new WatchedSolverFactory(),new WatchedFormulaFactory(),16);
         int count = 0;
-        int varNum = 100;
-        int clauseNum = Math.round(((float)varNum)*4.25f);
         WatchedFormulaFactory formulaFactory = null;
         Random rnd = new Random();
         while (count < 300) {
 //            varNum++;
-            varNum = rnd.nextInt(120)+150;      
-            clauseNum = Math.round(((float)varNum)*4.25f);
+            int varNum = rnd.nextInt(randomVarNum)+staticVarNum;
+            int clauseNum = Math.round(((float)varNum)*4.25f);
             formulaFactory = new WatchedFormulaFactory();
             generateFormulaeList(varNum, clauseNum, formulaFactory);
             System.out.println(varNum+", "+clauseNum);
@@ -188,7 +188,7 @@ public class TestSat4J {
             else {
                 continue;
             }
-            File newCnfFile = new File(path+"/"+count+"_XXX.cnf.txt");
+            File newCnfFile = new File(path+"/"+count+"_"+fileAppend+".cnf.txt");
             System.out.println(newCnfFile.toString());
             DimacsWriter.writeInstance(newCnfFile, formulaFactory);
 //                WatchedFormulaFactory formulaFactoryFile = new WatchedFormulaFactory();
@@ -207,7 +207,6 @@ public class TestSat4J {
     
     public static void generateFormulaeList(int varNum, int clauseNum, WatchedFormulaFactory formulaFactory) {
         formulaFactory.init(varNum, clauseNum);
-        List<List<Integer>> formulaList = new ArrayList<List<Integer>>(clauseNum);
         Random rnd = new Random(System.currentTimeMillis());
         for (int j = 0; j < clauseNum; j++) {
             Set<Integer> clause = new HashSet<Integer>(3);
@@ -218,7 +217,6 @@ public class TestSat4J {
                 clause.add(l);
             }
             formulaFactory.addClause(new ArrayList<Integer>(clause));
-            formulaList.add(new ArrayList<Integer>(clause));
         }
     }
 
@@ -308,71 +306,50 @@ public class TestSat4J {
         return currentDir;
     }
     
-    public static void compareWithSat4J(WatchedSolverFactory solverFactory, WatchedFormulaFactory formulaFactory, int threadCount, int initHibernate, int maxHibernate, String logDirPath, String cnfDirPath) {
-        long startTime = System.currentTimeMillis();
-        File cnfDirectory = new File(cnfDirPath);
-        File[] files = cnfDirectory.listFiles(new FileFilter() {
-            public boolean accept(File pathname) {
-                return pathname.getName().endsWith(".cnf.txt");
-            };
-        });
-        int successCount = 0;
-        int failureCount = 0;
-        int falseNegative = 0;
-        int falsePositive = 0;
-        for (int i = 0; i < files.length; i++) {
-            File file = files[i];
-            ISolver jsolver = SolverFactory.newDefault();
-            jsolver.setTimeout(3600); // 1 hour timeout
-            Reader reader = new DimacsReader(jsolver);
+    public static void compareWithSat4J(WatchedSolverFactory solverFactory, WatchedFormulaFactory formulaFactory, int threadCount, int initHibernate, int maxHibernate, File cnfFile, String logDirPath) {
+        ISolver jsolver = SolverFactory.newDefault();
+        jsolver.setTimeout(3600); // 1 hour timeout
+        Reader reader = new DimacsReader(jsolver);
+        System.out.println(cnfFile);
+        try {
+            long startTime = System.currentTimeMillis();
+            org.francis.sat.io.DimacsReader.parseInstance(cnfFile,formulaFactory);
+            SMPThreadedWatchedSolverFactory threadedSolverFactory = new SMPThreadedWatchedSolverFactory(solverFactory,formulaFactory);
+            SMPMessageManager messageManager = threadedSolverFactory.createAndRunSolversLocal(threadCount,2, initHibernate, maxHibernate, logDirPath);
+            SatResult satResult = messageManager.receiveResult();
+            System.out.println("My Solver : " + ((double)System.currentTimeMillis()-startTime)/1000);
+            boolean mySolver = satResult.result;
+            boolean sat4JSolver;
             try {
-                org.francis.sat.io.DimacsReader.parseInstance(file,formulaFactory);
-                SMPThreadedWatchedSolverFactory threadedSolverFactory = new SMPThreadedWatchedSolverFactory(solverFactory,formulaFactory);
-                SMPMessageManager messageManager = threadedSolverFactory.createAndRunSolversLocal(threadCount,2, initHibernate, maxHibernate, logDirPath);
-                SatResult satResult = messageManager.receiveResult();
-                boolean mySolver = satResult.result;
-                boolean sat4JSolver;
-                try {
-                    IProblem problem = reader.parseInstance(file.getAbsolutePath());
-                    sat4JSolver = problem.isSatisfiable();
-                } catch (ContradictionException e) {
-                    sat4JSolver = false;
-                }
-                if (mySolver != sat4JSolver) {
-                    org.francis.sat.io.DimacsReader.parseInstance(file,formulaFactory);
-                    SMPThreadedWatchedSolverFactory threadedSolverFactoryDebug = new SMPThreadedWatchedSolverFactory(solverFactory,formulaFactory);
-                    SMPMessageManager messageManagerDebug = threadedSolverFactoryDebug.createAndRunSolversLocal(threadCount, 2, initHibernate, maxHibernate, logDirPath);
-                    SatResult satResultDebug = messageManagerDebug.receiveResult();
-                    boolean mySolverDebug = satResultDebug.result;
-                    if (sat4JSolver) {
-                        System.out.println("False Negative");
-                        falseNegative++;
-                    }
-                    else {
-                        System.out.println("False Positive");
-                        falsePositive++;
-                    }
-                }
-                if (sat4JSolver) 
-                    successCount++;
-                else
-                    failureCount++;
-            } catch (FileNotFoundException e) {
-                e.printStackTrace();
-            } catch (ParseFormatException e) {
-                e.printStackTrace();
-            } catch (IOException e) {
-                e.printStackTrace();
-            } catch (TimeoutException e) {
-                System.out.println("Timeout, sorry!");
+                startTime = System.currentTimeMillis();
+                IProblem problem = reader.parseInstance(cnfFile.getAbsolutePath());
+                sat4JSolver = problem.isSatisfiable();
+                System.out.println("Sat4J : " + ((double)System.currentTimeMillis()-startTime)/1000);
+            } catch (ContradictionException e) {
+                sat4JSolver = false;
             }
+            if (mySolver != sat4JSolver) {
+                org.francis.sat.io.DimacsReader.parseInstance(cnfFile,formulaFactory);
+                SMPThreadedWatchedSolverFactory threadedSolverFactoryDebug = new SMPThreadedWatchedSolverFactory(solverFactory,formulaFactory);
+                SMPMessageManager messageManagerDebug = threadedSolverFactoryDebug.createAndRunSolversLocal(threadCount, 2, initHibernate, maxHibernate, logDirPath);
+                SatResult satResultDebug = messageManagerDebug.receiveResult();
+                boolean mySolverDebug = satResultDebug.result;
+                if (sat4JSolver) {
+                    System.out.println("False Negative");
+                }
+                else {
+                    System.out.println("False Positive");
+                }
+            }
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (ParseFormatException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (TimeoutException e) {
+            System.out.println("Timeout, sorry!");
         }
-        long totalTime = System.currentTimeMillis() - startTime;
-        System.out.println("Successes: " + successCount);
-        System.out.println("Failures: " + failureCount);
-        System.out.println("False Negatives: " + falseNegative);
-        System.out.println("False Positives: " + falsePositive);
-        System.out.println("Run Time: " + ((double)totalTime)/1000);
     }
     
     public static void runSat4J(String cnfDirPath) {

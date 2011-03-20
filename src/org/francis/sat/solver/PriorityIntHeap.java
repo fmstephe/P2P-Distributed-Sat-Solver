@@ -67,7 +67,10 @@ public class PriorityIntHeap implements Serializable {
     }
     
     private int compare(int a, int b) {
-        return a - b;
+        double diff = priorities[a] - priorities[b];
+        if (diff == 0) return 0;
+        if (diff < 0) return -1;
+        else return 1;
     }
 
     private void percolateUp(final int index) {
@@ -157,6 +160,10 @@ public class PriorityIntHeap implements Serializable {
     
     public double getPriority(int var) {
         return priorities[var];
+    }
+    
+    public void incPriority(int var, double incVal) {
+        priorities[var] += incVal;
     }
     
     public void setPriority(int var, double priority) {
