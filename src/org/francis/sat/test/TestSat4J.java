@@ -79,8 +79,8 @@ public class TestSat4J {
                 File runLoggingDir = ensureDir(formulaLoggingDir+"/"+threads);
                 WatchedFormulaFactory formulaFactory = new WatchedFormulaFactory();
                 org.francis.sat.io.DimacsReader.parseInstance(formulaFile,formulaFactory);
-//                runMySolversSMPThreaded(new WatchedSolverFactory(),formulaFactory,threads,initHibernate,maxHibernate,runLoggingDir,true,1200000);
-                compareWithSat4J(new WatchedSolverFactory(),new WatchedFormulaFactory(),threads,initHibernate,maxHibernate,formulaFile,null);
+                runMySolversSMPThreaded(new WatchedSolverFactory(),formulaFactory,threads,initHibernate,maxHibernate,runLoggingDir,true,1200000);
+//                compareWithSat4J(new WatchedSolverFactory(),new WatchedFormulaFactory(),threads,initHibernate,maxHibernate,formulaFile,null);
             }
         }
     }
