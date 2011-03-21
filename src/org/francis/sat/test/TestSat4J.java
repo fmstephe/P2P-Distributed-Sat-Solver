@@ -93,116 +93,32 @@ public class TestSat4J {
         int threads = Integer.parseInt(args[0]);
         int staticVarNum = Integer.parseInt(args[1]);
         int randomVarNum = Integer.parseInt(args[2]);
-        String fileAppend =args[3];
+        int timeout = Integer.parseInt(args[3]); // timeout in minutes
         String workingPath = System.getProperty("user.dir");
-        String lessThanTenSeconds = workingPath+"/cnf/lessThanTenSeconds";
-        ensureDir(lessThanTenSeconds);
-        String tenToTwentySeconds = workingPath+"/cnf/tenToTwentySeconds";
-        ensureDir(tenToTwentySeconds);
-        String twentyToThirtySeconds = workingPath+"/cnf/twentyToThirtySeconds";
-        ensureDir(twentyToThirtySeconds);
-        String thirtyToFortySeconds = workingPath+"/cnf/thirtyToFortySeconds";
-        ensureDir(thirtyToFortySeconds);
-        String fortyToFiftySeconds = workingPath+"/cnf/fortyToFiftySeconds";
-        ensureDir(fortyToFiftySeconds);
-        String fiftyToSixtySeconds = workingPath+"/cnf/fiftyToSixtySeconds";
-        ensureDir(fiftyToSixtySeconds);
-        String sixtyToSeventySeconds = workingPath+"/cnf/sixtyToSeventySeconds";
-        ensureDir(sixtyToSeventySeconds);
-        String seventyToEightySeconds = workingPath+"/cnf/seventyToEightySeconds";
-        ensureDir(seventyToEightySeconds);
-        String eightyToNinetySeconds = workingPath+"/cnf/eightyToNinetySeconds";
-        ensureDir(eightyToNinetySeconds);
-        String ninetyToOneTwentySeconds = workingPath+"/cnf/ninetyToOneTwentySeconds";
-        ensureDir(ninetyToOneTwentySeconds);
-        String oneTwentyToOneSixtySeconds = workingPath+"/cnf/oneTwentyToOneSixtySeconds";
-        ensureDir(oneTwentyToOneSixtySeconds);
-        String oneSixtyToThreeFiftySeconds = workingPath+"/cnf/oneSixtyToThreeFiftySeconds";
-        ensureDir(oneSixtyToThreeFiftySeconds);
-        String threeFiftyToSixHundredSeconds = workingPath+"/cnf/threeFiftyToSixHundredSeconds";
-        ensureDir(threeFiftyToSixHundredSeconds);
-        String sixHundredToOneThousandSeconds = workingPath+"/cnf/sixHundredToOneThousandSeconds";
-        ensureDir(sixHundredToOneThousandSeconds);
-        String oneThousandToTwoThousandSeconds = workingPath+"/cnf/oneThousandToTwoThousandSeconds";
-        ensureDir(oneThousandToTwoThousandSeconds);
-//        generateFormulaeFile(cnfDirPath);
-//        runSat4J(cnfDirPath);
-//        compareWithSat4J(new WatchedSolverFactory(),new WatchedFormulaFactory(),16);
         int count = 0;
         WatchedFormulaFactory formulaFactory = null;
         Random rnd = new Random();
         while (count < 300) {
-//            varNum++;
             int varNum = rnd.nextInt(randomVarNum)+staticVarNum;
             int clauseNum = Math.round(((float)varNum)*4.25f);
             formulaFactory = new WatchedFormulaFactory();
             generateFormulaeList(varNum, clauseNum, formulaFactory);
             System.out.println(varNum+", "+clauseNum);
-            long runTime = runMySolversSMPThreaded(new WatchedSolverFactory(),formulaFactory,threads,2,1024,null,true,2000001);
-            String path = null;
-            if (runTime < 10000) {
-                path = lessThanTenSeconds;
+            long runTime = runMySolversSMPThreaded(new WatchedSolverFactory(),formulaFactory,threads,2,1024,null,true,(timeout*60000)+1);
+            if (runTime >= timeout*60000) continue;
+            long runCatagory = runTime/60000; // Give number of minutes for run
+            String path = workingPath+"/cnf/"+runCatagory+"-"+(runCatagory+1)+"_minutes";
+            ensureDir(path);
+            File newCnfFile = new File(path+"/"+count+".cnf.txt");
+            int id = 0;
+            while(newCnfFile.exists()) {
+                newCnfFile = new File(path+"/"+count+"_"+id+".cnf.txt");
+                id++;
             }
-            else if (runTime > 10000 && runTime < 20000) {
-                path = tenToTwentySeconds;
-            }
-            else if (runTime > 20000 && runTime < 30000) {
-                path = twentyToThirtySeconds;
-            }
-            else if (runTime > 30000 && runTime < 40000) {
-                path = thirtyToFortySeconds;
-            }
-            else if (runTime > 40000 && runTime < 50000) {
-                path = fortyToFiftySeconds;
-            }
-            else if (runTime > 50000 && runTime < 60000) {
-                path = fiftyToSixtySeconds;
-            }
-            else if (runTime > 60000 && runTime < 70000) {
-                path = sixtyToSeventySeconds;
-            }
-            else if (runTime > 70000 && runTime < 80000) {
-                path = seventyToEightySeconds;
-            }
-            else if (runTime > 80000 && runTime < 90000) {
-                path = eightyToNinetySeconds;
-            }
-            else if (runTime > 90000 && runTime < 120000) {
-                path = ninetyToOneTwentySeconds;
-            }
-            else if (runTime > 120000 && runTime < 160000) {
-                path = oneTwentyToOneSixtySeconds;
-            }
-            else if (runTime > 160000 && runTime < 350000) {
-                path = oneSixtyToThreeFiftySeconds;
-            }
-            else if (runTime > 350000 && runTime < 600000) {
-                path = threeFiftyToSixHundredSeconds;
-            }
-            else if (runTime > 600000 && runTime < 1000000) {
-                path = sixHundredToOneThousandSeconds;
-            }
-            else if (runTime > 1000000 && runTime < 2000000) {
-                path = oneThousandToTwoThousandSeconds;
-            }
-            else {
-                continue;
-            }
-            File newCnfFile = new File(path+"/"+count+"_"+fileAppend+".cnf.txt");
             System.out.println(newCnfFile.toString());
             DimacsWriter.writeInstance(newCnfFile, formulaFactory);
-//                WatchedFormulaFactory formulaFactoryFile = new WatchedFormulaFactory();
-//                org.francis.sat.io.DimacsReader.parseInstance(newCnfFile,formulaFactoryFile);
-//                runMySolversSMPThreaded(new WatchedSolverFactory(),formulaFactoryFile,threads,null,true);
             count++;
         }
-//        for (int i = threads*2; i> 0; i/=2) {
-//            System.out.print(i+" thread(s) ");
-//            String runDirPath = workingPath+"/logs/run_"+i;
-//            File runDir = ensureDir(runDirPath);
-//            runMySolversSMPThreaded(new WatchedSolverFactory(),formulaFactory,i,runDir,true);
-//        }
-//        deleteFormula(cnfDirPath);
     }
     
     public static void generateFormulaeList(int varNum, int clauseNum, WatchedFormulaFactory formulaFactory) {
