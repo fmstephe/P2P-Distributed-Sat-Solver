@@ -138,7 +138,7 @@ public class SatRunner {
 
     private void readFormula() {
         if (clauseFile != null) {
-            DimacsReader.parseInstance(clauseFile,formulaFactory);
+            DimacsReader.parseDimacsFile(clauseFile,formulaFactory);
         }
     }
 

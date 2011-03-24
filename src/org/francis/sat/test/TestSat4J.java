@@ -34,12 +34,13 @@ public class TestSat4J {
     static final int MAXVAR = 130;// 100;
     static final int NBCLAUSES = Math.round(((float)MAXVAR)*4.25f);// 425;
     static final int FILE_NUM = 3;
+    static final int MINUTES_TO_MILLIS = 60000;
     
     public static void main(String[] args) throws Exception {
         long startTime = System.currentTimeMillis();
 //        runOneProblem();
         if (args.length == 4) createTimedFormula(args);
-        if (args.length == 1) runCNFDir(args);
+        if (args.length == 2) runCNFDir(args);
         long totalTime = System.currentTimeMillis() - startTime;
         System.out.println(totalTime/1000);
     }
@@ -52,6 +53,7 @@ public class TestSat4J {
     
     public static void runCNFDir(String[] args) throws IOException {
         int processorCount = Integer.parseInt(args[0]);
+        long timeout = Integer.parseInt(args[1])*MINUTES_TO_MILLIS;
         int initHibernate = 2;
         int maxHibernate = 1024;
         if (args.length == 3) {
@@ -78,9 +80,9 @@ public class TestSat4J {
                 int threads = processorCount;
                 File runLoggingDir = ensureDir(formulaLoggingDir+"/"+threads);
                 WatchedFormulaFactory formulaFactory = new WatchedFormulaFactory();
-                org.francis.sat.io.DimacsReader.parseInstance(formulaFile,formulaFactory);
-                runMySolversSMPThreaded(new WatchedSolverFactory(),formulaFactory,threads,initHibernate,maxHibernate,runLoggingDir,true,1200000);
-//                compareWithSat4J(new WatchedSolverFactory(),new WatchedFormulaFactory(),threads,initHibernate,maxHibernate,formulaFile,null);
+                org.francis.sat.io.DimacsReader.parseDimacsFile(formulaFile,formulaFactory);
+//                runMySolversSMPThreaded(new WatchedSolverFactory(),formulaFactory,threads,initHibernate,maxHibernate,runLoggingDir,true,timeout);
+                compareWithSat4J(new WatchedSolverFactory(),new WatchedFormulaFactory(),threads,initHibernate,maxHibernate,formulaFile,null);
             }
         }
     }
@@ -93,7 +95,7 @@ public class TestSat4J {
         int threads = Integer.parseInt(args[0]);
         int staticVarNum = Integer.parseInt(args[1]);
         int randomVarNum = Integer.parseInt(args[2]);
-        int timeout = Integer.parseInt(args[3]); // timeout in minutes
+        int timeout = Integer.parseInt(args[3])*MINUTES_TO_MILLIS; // timeout in minutes
         String workingPath = System.getProperty("user.dir");
         int count = 0;
         WatchedFormulaFactory formulaFactory = null;
@@ -104,9 +106,9 @@ public class TestSat4J {
             formulaFactory = new WatchedFormulaFactory();
             generateFormulaeList(varNum, clauseNum, formulaFactory);
             System.out.println(varNum+", "+clauseNum);
-            long runTime = runMySolversSMPThreaded(new WatchedSolverFactory(),formulaFactory,threads,2,1024,null,true,(timeout*60000)+1);
-            if (runTime >= timeout*60000) continue;
-            long runCatagory = runTime/60000; // Give number of minutes for run
+            long runTime = runMySolversSMPThreaded(new WatchedSolverFactory(),formulaFactory,threads,2,1024,null,true,(timeout)+1);
+            if (runTime >= timeout) continue;
+            long runCatagory = runTime/MINUTES_TO_MILLIS; // Give number of minutes for run
             String path = workingPath+"/cnf/"+runCatagory+"-"+(runCatagory+1)+"_minutes";
             ensureDir(path);
             File newCnfFile = new File(path+"/"+count+".cnf.txt");
@@ -209,7 +211,7 @@ public class TestSat4J {
     }
     
     public static File ensureDir(String path) {
-//        System.out.println(path);
+        System.out.println(path);
         String[] dirs = path.split("/");
         String currentPath = "";
         File currentDir = null;
@@ -229,23 +231,23 @@ public class TestSat4J {
         System.out.println(cnfFile);
         try {
             long startTime = System.currentTimeMillis();
-            org.francis.sat.io.DimacsReader.parseInstance(cnfFile,formulaFactory);
+            org.francis.sat.io.DimacsReader.parseDimacsFile(cnfFile,formulaFactory);
             SMPThreadedWatchedSolverFactory threadedSolverFactory = new SMPThreadedWatchedSolverFactory(solverFactory,formulaFactory);
             SMPMessageManager messageManager = threadedSolverFactory.createAndRunSolversLocal(threadCount,2, initHibernate, maxHibernate, logDirPath);
             SatResult satResult = messageManager.receiveResult();
-            System.out.println("My Solver : " + ((double)System.currentTimeMillis()-startTime)/1000);
+            System.out.println("My Solver : \t" + satResult.result + "\t" + ((double)System.currentTimeMillis()-startTime)/1000);
             boolean mySolver = satResult.result;
             boolean sat4JSolver;
             try {
                 startTime = System.currentTimeMillis();
                 IProblem problem = reader.parseInstance(cnfFile.getAbsolutePath());
                 sat4JSolver = problem.isSatisfiable();
-                System.out.println("Sat4J : " + ((double)System.currentTimeMillis()-startTime)/1000);
+                System.out.println("Sat4J : \t" + sat4JSolver + "\t" + ((double)System.currentTimeMillis()-startTime)/1000);
             } catch (ContradictionException e) {
                 sat4JSolver = false;
             }
             if (mySolver != sat4JSolver) {
-                org.francis.sat.io.DimacsReader.parseInstance(cnfFile,formulaFactory);
+                org.francis.sat.io.DimacsReader.parseDimacsFile(cnfFile,formulaFactory);
                 SMPThreadedWatchedSolverFactory threadedSolverFactoryDebug = new SMPThreadedWatchedSolverFactory(solverFactory,formulaFactory);
                 SMPMessageManager messageManagerDebug = threadedSolverFactoryDebug.createAndRunSolversLocal(threadCount, 2, initHibernate, maxHibernate, logDirPath);
                 SatResult satResultDebug = messageManagerDebug.receiveResult();

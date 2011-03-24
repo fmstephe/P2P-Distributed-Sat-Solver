@@ -28,6 +28,7 @@
 package org.francis.sat.solver;
 
 import java.io.Serializable;
+import java.util.Arrays;
 
 /**
  * Heap implementation used to maintain the variables order in some heuristics.
@@ -66,11 +67,8 @@ public class PriorityIntHeap implements Serializable {
         size = 0;
     }
     
-    private int compare(int a, int b) {
-        double diff = priorities[a] - priorities[b];
-        if (diff == 0) return 0;
-        if (diff < 0) return -1;
-        else return 1;
+    private double compare(int a, int b) {
+        return priorities[a] - priorities[b];
     }
 
     private void percolateUp(final int index) {
@@ -119,6 +117,7 @@ public class PriorityIntHeap implements Serializable {
     }
 
     public int pop() {
+        assert consistent();
         ensureNotEmpty();
         int var = heap[1];
         indices[var] = 0;
@@ -131,12 +130,14 @@ public class PriorityIntHeap implements Serializable {
     }
     
     public int peek() {
+        assert consistent();
         ensureNotEmpty();
         return heap[1];
     }
     
     public void delete(int var) {
-        assert indices[var] != 0; // This is an unchecked requirement for the caller to maintain
+        assert indices[var] != 0; // This is unchecked without assertions - don't try to delete shit which ain't there, caller
+        assert consistent();
         int i = indices[var];
         indices[var] = 0;
         heap[i] = heap[size];
@@ -175,10 +176,11 @@ public class PriorityIntHeap implements Serializable {
     }
     
     private boolean goodIndex(int index) {
-        boolean leftMatch = left(index) > size ? true : heap[index] > heap[left(index)];
-        boolean rightMatch = right(index) > size ? true : heap[index] > heap[right(index)];
+        boolean leftMatch = left(index) > size ? true : compare(heap[index],heap[left(index)]) >= 0;
+        boolean rightMatch = right(index) > size ? true : compare(heap[index],heap[right(index)]) >= 0;
         boolean indiceMatch = indices[heap[index]] == index;
-        return leftMatch & rightMatch & indiceMatch;
+        boolean result = leftMatch & rightMatch & indiceMatch;
+        return result;
     }
     
     private boolean consistent() {

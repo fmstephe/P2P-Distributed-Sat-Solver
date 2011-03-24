@@ -42,9 +42,6 @@ public class WatchedFormula implements BooleanFormula, WorkSharer, Serializable 
     
     public void init() {
         this.path = new WorkPath(this,varNum);
-        for (int i = 1; i <= varNum; i++) {
-            freeVars.insert(i);
-        }
         for (int i = 1; i < watchedClauseArray.length;i++) {
             List<WatchedClause> clauses = watchedClauseArray[i];
             for (WatchedClause clause : clauses) {
@@ -54,6 +51,9 @@ public class WatchedFormula implements BooleanFormula, WorkSharer, Serializable 
                     freeVars.incPriority(var, 1d);
                 }
             }
+        }
+        for (int i = 1; i <= varNum; i++) {
+            freeVars.insert(i);
         }
         for (int i = 1; i < varVals.length; i++) {
             varVals[i] = 0;

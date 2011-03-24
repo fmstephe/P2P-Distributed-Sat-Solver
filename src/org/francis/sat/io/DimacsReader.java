@@ -15,7 +15,7 @@ import org.sat4j.specs.ContradictionException;
 
 public class DimacsReader {
 
-    public static void parseInstance(File cnfFile, FormulaFactory factory) {
+    public static void parseDimacsFile(File cnfFile, FormulaFactory factory) {
         LineNumberReader in = null;
         try {
             in = new LineNumberReader(new InputStreamReader(new FileInputStream(cnfFile)));
