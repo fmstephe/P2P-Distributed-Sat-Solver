@@ -4,10 +4,10 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
+import org.francis.sat.collections.HopScotchList;
 import org.francis.sat.solver.BooleanFormula;
 import org.francis.sat.solver.Clause;
 import org.francis.sat.solver.PriorityIntHeap;
@@ -19,7 +19,7 @@ public class WatchedFormula implements BooleanFormula, WorkSharer, Serializable 
     
     private final int varNum, clauseNum;
     private final byte[] varVals;
-    private final List<WatchedClause>[] watchedClauseArray;
+    private final HopScotchList<WatchedClause>[] watchedClauseArray;
     private final List<WatchedClause> initUnitClauses;
     private final List<WatchedClause> initSatClauses;
     private WorkPath path;
@@ -32,9 +32,9 @@ public class WatchedFormula implements BooleanFormula, WorkSharer, Serializable 
         this.clauseNum = clauseNum;
         this.initUnitClauses = new ArrayList<WatchedClause>();
         this.initSatClauses = new ArrayList<WatchedClause>();
-        this.watchedClauseArray = new List[varNum+1];
+        this.watchedClauseArray = new HopScotchList[varNum+1];
         for (int i = 1; i < watchedClauseArray.length; i++) {
-            watchedClauseArray[i] = new ArrayList<WatchedClause>();
+            watchedClauseArray[i] = new HopScotchList<WatchedClause>();
         }
         this.varVals = new byte[varNum+1];
         this.freeVars = new PriorityIntHeap(varNum);
@@ -43,8 +43,9 @@ public class WatchedFormula implements BooleanFormula, WorkSharer, Serializable 
     public void init() {
         this.path = new WorkPath(this,varNum);
         for (int i = 1; i < watchedClauseArray.length;i++) {
-            List<WatchedClause> clauses = watchedClauseArray[i];
-            for (WatchedClause clause : clauses) {
+            HopScotchList<WatchedClause> clauses = watchedClauseArray[i];
+            for (int j = 0; j < clauses.size(); j++) {
+                WatchedClause clause = clauses.get(j);
                 int[] literals = clause.getLiterals();
                 for (int literal : literals) {
                     int var = Clause.getVariable(literal);
@@ -150,20 +151,20 @@ public class WatchedFormula implements BooleanFormula, WorkSharer, Serializable 
     
     protected void setLiteralForNewPath(int literal, boolean branchable) {
         setLiteral0(literal,new ArrayList<WatchedClause>());
+        assert checkState();
     }
     
     private void setLiteral0(int literal, List<WatchedClause> unitClauses) {
         int var = Clause.getVariable(literal);
         freeVars.delete(var);
         varVals[var] = literal%2 == 0 ? (byte)1 : (byte)-1;
-        List<WatchedClause> watchedClauses = watchedClauseArray[var];
-        Iterator<WatchedClause> itr = watchedClauses.iterator();
-        while (itr.hasNext()) {
-            WatchedClause clause = itr.next();
+        HopScotchList<WatchedClause> watchedClauses = watchedClauseArray[var];
+        for (int i = watchedClauses.size()-1; i >= 0; i--) {
+            WatchedClause clause = watchedClauses.get(i);
             int newWatchedLiteral = clause.satisfying(literal);
             if (newWatchedLiteral >= 0) {
                 watchedClauseArray[Clause.getVariable(newWatchedLiteral)].add(clause);
-                itr.remove();
+                watchedClauses.remove(i);
             }
             else if (newWatchedLiteral == WatchedClause.MADE_UNIT) {
                 unitClauses.add(clause);
@@ -243,9 +244,10 @@ public class WatchedFormula implements BooleanFormula, WorkSharer, Serializable 
     @Override
     public List<List<Integer>> getDimacsClauses() {
         Set<WatchedClause> clauseSet = new HashSet<WatchedClause>();
-        for (List<WatchedClause> watchedClauses : watchedClauseArray) {
+        for (HopScotchList<WatchedClause> watchedClauses : watchedClauseArray) {
             if (watchedClauses == null) continue;
-            for (WatchedClause watchedClause : watchedClauses) {
+            for (int i = 0; i < watchedClauses.size(); i++) {
+                WatchedClause watchedClause = watchedClauses.get(i);
                 clauseSet.add(watchedClause);
             }
         }
