@@ -42,9 +42,6 @@ public class WatchedFormula implements BooleanFormula, WorkSharer, Serializable 
     
     public void init() {
         this.path = new WorkPath(this,varNum);
-        for (int i = 1; i <= varNum; i++) {
-            freeVars.insert(i);
-        }
         for (int i = 1; i < watchedClauseArray.length;i++) {
             List<WatchedClause> clauses = watchedClauseArray[i];
             for (WatchedClause clause : clauses) {
@@ -54,6 +51,9 @@ public class WatchedFormula implements BooleanFormula, WorkSharer, Serializable 
                     freeVars.incPriority(var, 1d);
                 }
             }
+        }
+        for (int i = 1; i <= varNum; i++) {
+            freeVars.insert(i);
         }
         for (int i = 1; i < varVals.length; i++) {
             varVals[i] = 0;
@@ -143,10 +143,19 @@ public class WatchedFormula implements BooleanFormula, WorkSharer, Serializable 
     
     protected void setLiteral(int literal, boolean branchable, boolean unit, List<WatchedClause> unitClauses) {
         assert checkState();
+        path.addToPath(literal, branchable, unit);
+        setLiteral0(literal,unitClauses);
+        assert checkState();
+    }
+    
+    protected void setLiteralForNewPath(int literal, boolean branchable) {
+        setLiteral0(literal,new ArrayList<WatchedClause>());
+    }
+    
+    private void setLiteral0(int literal, List<WatchedClause> unitClauses) {
         int var = Clause.getVariable(literal);
         freeVars.delete(var);
         varVals[var] = literal%2 == 0 ? (byte)1 : (byte)-1;
-        path.addToPath(literal, branchable, unit);
         List<WatchedClause> watchedClauses = watchedClauseArray[var];
         Iterator<WatchedClause> itr = watchedClauses.iterator();
         while (itr.hasNext()) {
@@ -158,23 +167,6 @@ public class WatchedFormula implements BooleanFormula, WorkSharer, Serializable 
             }
             else if (newWatchedLiteral == WatchedClause.MADE_UNIT) {
                 unitClauses.add(clause);
-            }
-        }
-        assert checkState();
-    }
-    
-    protected void setLiteralForNewPath(int literal, boolean branchable) {
-        int var = Clause.getVariable(literal);
-        freeVars.delete(var);
-        varVals[var] = literal%2 == 0 ? (byte)1 : (byte)-1;
-        List<WatchedClause> watchedClauses = watchedClauseArray[var];
-        Iterator<WatchedClause> itr = watchedClauses.iterator();
-        while (itr.hasNext()) {
-            WatchedClause clause = itr.next();
-            int newWatchedLiteral = clause.satisfying(literal);
-            if (newWatchedLiteral >= 0) {
-                watchedClauseArray[Clause.getVariable(newWatchedLiteral)].add(clause);
-                itr.remove();
             }
         }
     }

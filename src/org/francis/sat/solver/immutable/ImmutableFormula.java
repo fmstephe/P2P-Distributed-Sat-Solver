@@ -1,11 +1,8 @@
 package org.francis.sat.solver.immutable;
 
-import gnu.trove.iterator.TIntIterator;
-import gnu.trove.list.TIntList;
-import gnu.trove.list.array.TIntArrayList;
-
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
 import org.francis.sat.solver.BooleanFormula;
@@ -37,13 +34,13 @@ public class ImmutableFormula implements BooleanFormula, Serializable {
     }
     
     public void unitPropogation() {
-        TIntList unitLiterals = new TIntArrayList();
+        List<Integer> unitLiterals = new ArrayList<Integer>();
         while (true) {
             boolean newUnitFound = false;
             CLAUSE_LOOP:
             for (int i = clauses.size()-1; i >= 0; i--) {
                 ImmutableClause clause = clauses.get(i);
-                TIntIterator itr = unitLiterals.iterator();
+                Iterator<Integer> itr = unitLiterals.iterator();
                 while (itr.hasNext()) {
                     int unitLit = itr.next();
                     ImmutableClause newClause = clause.satisfying(unitLit);
