@@ -39,7 +39,7 @@ public class WatchedFormula implements BooleanFormula, WorkSharer, Serializable 
     public void init() {
         this.path = new WorkPath(this,varNum);
         for (int i = 1; i < watchedClauseRepo.size();i++) {
-            HopScotchList<WatchedClause> clauses = watchedClauseRepo.getClauseListOne(i);
+            HopScotchList<WatchedClause> clauses = watchedClauseRepo.getClauseListOneP(i);
             for (int j = 0; j < clauses.size(); j++) {
                 WatchedClause clause = clauses.get(j);
                 int[] literals = clause.getLiterals();
@@ -48,7 +48,25 @@ public class WatchedFormula implements BooleanFormula, WorkSharer, Serializable 
                     freeVars.incPriority(var, 1d);
                 }
             }
-            clauses = watchedClauseRepo.getClauseListTwo(i);
+            clauses = watchedClauseRepo.getClauseListOneN(i);
+            for (int j = 0; j < clauses.size(); j++) {
+                WatchedClause clause = clauses.get(j);
+                int[] literals = clause.getLiterals();
+                for (int literal : literals) {
+                    int var = Clause.getVariable(literal);
+                    freeVars.incPriority(var, 1d);
+                }
+            }
+            clauses = watchedClauseRepo.getClauseListTwoP(i);
+            for (int j = 0; j < clauses.size(); j++) {
+                WatchedClause clause = clauses.get(j);
+                int[] literals = clause.getLiterals();
+                for (int literal : literals) {
+                    int var = Clause.getVariable(literal);
+                    freeVars.incPriority(var, 1d);
+                }
+            }
+            clauses = watchedClauseRepo.getClauseListTwoN(i);
             for (int j = 0; j < clauses.size(); j++) {
                 WatchedClause clause = clauses.get(j);
                 int[] literals = clause.getLiterals();
@@ -234,13 +252,25 @@ public class WatchedFormula implements BooleanFormula, WorkSharer, Serializable 
     public List<List<Integer>> getDimacsClauses() {
         Set<WatchedClause> clauseSet = new HashSet<WatchedClause>();
         for (int i = 1; i < watchedClauseRepo.size(); i++) {
-            HopScotchList<WatchedClause> watchedClauses = watchedClauseRepo.getClauseListOne(i);
+            HopScotchList<WatchedClause> watchedClauses = watchedClauseRepo.getClauseListOneP(i);
             if (watchedClauses == null) continue;
             for (int j = 0; j < watchedClauses.size(); j++) {
                 WatchedClause watchedClause = watchedClauses.get(j);
                 clauseSet.add(watchedClause);
             }
-            watchedClauses = watchedClauseRepo.getClauseListTwo(i);
+            watchedClauses = watchedClauseRepo.getClauseListOneN(i);
+            if (watchedClauses == null) continue;
+            for (int j = 0; j < watchedClauses.size(); j++) {
+                WatchedClause watchedClause = watchedClauses.get(j);
+                clauseSet.add(watchedClause);
+            }
+            watchedClauses = watchedClauseRepo.getClauseListTwoP(i);
+            if (watchedClauses == null) continue;
+            for (int j = 0; j < watchedClauses.size(); j++) {
+                WatchedClause watchedClause = watchedClauses.get(j);
+                clauseSet.add(watchedClause);
+            }
+            watchedClauses = watchedClauseRepo.getClauseListTwoN(i);
             if (watchedClauses == null) continue;
             for (int j = 0; j < watchedClauses.size(); j++) {
                 WatchedClause watchedClause = watchedClauses.get(j);

@@ -58,7 +58,6 @@ public class WatchedClause extends Clause implements Serializable{
 
     public int satisfying(int literal, int watchIdx) {
         assert Clause.getVariable(literals[watchIdx]) == Clause.getVariable(literal);
-        if (literal == literals[watchIdx]) return WATCH_UNCHANGED;
         for (int i = 2; i < literals.length; i++) {
             int newLiteral = literals[i];
             if (!formula.isConflicted(newLiteral)) {

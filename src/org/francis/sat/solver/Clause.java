@@ -9,6 +9,10 @@ public abstract class Clause {
         return literal >> 1;
     }
     
+    public static boolean isPosLiteral(int literal) {
+        return literal%2 == 0;
+    }
+    
     public static int getDimacs(int literal) {
         return literal%2 == 0 ? getVariable(literal) : -getVariable(literal);
     }

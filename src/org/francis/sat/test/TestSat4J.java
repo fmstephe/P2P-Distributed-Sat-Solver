@@ -38,7 +38,7 @@ public class TestSat4J {
     
     public static void main(String[] args) throws Exception {
         long startTime = System.currentTimeMillis();
-//        runOneProblem();
+        if (args.length == 0) runOneProblem();
         if (args.length == 4) createTimedFormula(args);
         if (args.length == 2) runCNFDir(args);
         long totalTime = System.currentTimeMillis() - startTime;
@@ -47,8 +47,9 @@ public class TestSat4J {
     
     public static void runOneProblem() throws IOException {
         WatchedFormulaFactory formulaFactory = new WatchedFormulaFactory();
-        generateFormulaeList(50, 400, formulaFactory);
-        compareWithSat4J(new WatchedSolverFactory(),formulaFactory,8,2,1024,null,null);
+        generateFormulaeList(3, 20, formulaFactory);
+        runMySolversSMPThreaded(new WatchedSolverFactory(),formulaFactory,1,2,1024,null,true,1000000);
+//        compareWithSat4J(new WatchedSolverFactory(),formulaFactory,8,2,1024,null,null);
     }
     
     public static void runCNFDir(String[] args) throws IOException {
@@ -128,10 +129,15 @@ public class TestSat4J {
         Random rnd = new Random(System.currentTimeMillis());
         for (int j = 0; j < clauseNum; j++) {
             Set<Integer> clause = new HashSet<Integer>(3);
+            CLAUSE_ADD:
             while(clause.size() < 3) {
                 int d = rnd.nextInt(varNum) + 1;
                 d = rnd.nextBoolean() ? d : -d;
                 int l = Clause.literalFromDimacs(d);
+                for (int el : clause) {
+                    if (l == el || (l^1) == el)
+                        continue CLAUSE_ADD;
+                }
                 clause.add(l);
             }
             formulaFactory.addClause(new ArrayList<Integer>(clause));
@@ -258,6 +264,7 @@ public class TestSat4J {
                 else {
                     System.out.println("False Positive");
                 }
+                System.exit(-1);
             }
         } catch (FileNotFoundException e) {
             e.printStackTrace();

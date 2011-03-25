@@ -1,5 +1,7 @@
 package org.francis.sat.collections;
 
+import java.util.Arrays;
+
 @SuppressWarnings("unchecked")
 public class HopScotchList<T> {
 
@@ -46,5 +48,17 @@ public class HopScotchList<T> {
     
     private T getLast() {
         return (T) elems[size-1];
+    }
+    
+    @Override
+    public String toString() {
+        StringBuilder out = new StringBuilder();
+        out.append("[");
+        for (int i = 0; i < size-1; i++) {
+            out.append(elems[i]+",");
+        }
+        if (size != 0) out.append(elems[size-1]);
+        out.append("]");
+        return out.toString();
     }
 }
