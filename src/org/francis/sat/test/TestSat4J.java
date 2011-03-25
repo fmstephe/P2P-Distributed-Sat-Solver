@@ -102,7 +102,7 @@ public class TestSat4J {
         Random rnd = new Random();
         while (count < 300) {
             int varNum = rnd.nextInt(randomVarNum)+staticVarNum;
-            int clauseNum = Math.round(((float)varNum)*4.25f);
+            int clauseNum = Math.round(((float)varNum)*4.3f);
             formulaFactory = new WatchedFormulaFactory();
             generateFormulaeList(varNum, clauseNum, formulaFactory);
             System.out.println(varNum+", "+clauseNum);
