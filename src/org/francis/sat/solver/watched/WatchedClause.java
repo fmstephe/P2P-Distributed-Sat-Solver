@@ -47,7 +47,7 @@ public class WatchedClause extends Clause implements Serializable{
             return literals[watchOne];
     }
     
-    public boolean isUnit() {
+    private boolean isUnit() {
         boolean watchOneCon = formula.isConflicted(literals[watchOne]);
         boolean watchTwoInd = formula.isIndetermined(literals[watchTwo]);
         if (watchOneCon && watchTwoInd) return true;
@@ -67,7 +67,7 @@ public class WatchedClause extends Clause implements Serializable{
                 return newLiteral;
             }
         }
-        if (isUnit()) return MADE_UNIT;
+        if (formula.isIndetermined(literals[watchIdx^1])) return MADE_UNIT;
         return WATCH_UNCHANGED;
     }
     
