@@ -40,7 +40,7 @@ public class TestSat4J {
         long startTime = System.currentTimeMillis();
         if (args.length == 0) runOneProblem();
         if (args.length == 4) createTimedFormula(args);
-        if (args.length == 2) runCNFDir(args);
+        if (args.length == 3) runCNFDir(args);
         long totalTime = System.currentTimeMillis() - startTime;
         System.out.println(totalTime/1000);
     }
@@ -55,6 +55,7 @@ public class TestSat4J {
     public static void runCNFDir(String[] args) throws IOException {
         int processorCount = Integer.parseInt(args[0]);
         long timeout = Integer.parseInt(args[1])*MINUTES_TO_MILLIS;
+        String regression = args[2];
         int initHibernate = 2;
         int maxHibernate = 1024;
         if (args.length == 3) {
@@ -82,8 +83,12 @@ public class TestSat4J {
                 File runLoggingDir = ensureDir(formulaLoggingDir+"/"+threads);
                 WatchedFormulaFactory formulaFactory = new WatchedFormulaFactory();
                 org.francis.sat.io.DimacsReader.parseDimacsFile(formulaFile,formulaFactory);
-//                runMySolversSMPThreaded(new WatchedSolverFactory(),formulaFactory,threads,initHibernate,maxHibernate,runLoggingDir,true,timeout);
-                compareWithSat4J(new WatchedSolverFactory(),new WatchedFormulaFactory(),threads,initHibernate,maxHibernate,formulaFile,null);
+                if (regression.equals("-r")) {
+                    compareWithSat4J(new WatchedSolverFactory(),new WatchedFormulaFactory(),threads,initHibernate,maxHibernate,formulaFile,null);
+                }
+                else {
+                    runMySolversSMPThreaded(new WatchedSolverFactory(),formulaFactory,threads,initHibernate,maxHibernate,runLoggingDir,true,timeout);
+                }
             }
         }
     }
