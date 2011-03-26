@@ -17,8 +17,8 @@ public class WatchedClause extends Clause implements Serializable{
     public static final int MADE_SAT = -3;
     public static final int MADE_UNSAT = -4;
     
-    private static final int watchOne = 0;
-    private static final int watchTwo = 1;
+    public static final int watchOne = 0;
+    public static final int watchTwo = 1;
     final private int[] literals;
     private final WatchedFormula formula;
 
@@ -47,7 +47,7 @@ public class WatchedClause extends Clause implements Serializable{
             return literals[watchOne];
     }
     
-    public boolean isUnit() {
+    private boolean isUnit() {
         boolean watchOneCon = formula.isConflicted(literals[watchOne]);
         boolean watchTwoInd = formula.isIndetermined(literals[watchTwo]);
         if (watchOneCon && watchTwoInd) return true;
@@ -56,21 +56,18 @@ public class WatchedClause extends Clause implements Serializable{
         return (watchTwoCon && watchOneInd);
     }
 
-    public int satisfying(int literal) {
-        assert Clause.getVariable(literals[watchOne]) == Clause.getVariable(literal) || Clause.getVariable(literals[watchTwo]) == Clause.getVariable(literal);
-        int var = Clause.getVariable(literal);
-        if (literal == literals[watchOne] || literal == literals[watchTwo]) return WATCH_UNCHANGED;
-        int watchIndex = Clause.getVariable(literals[watchOne]) == var ? watchOne : watchTwo;
+    public int satisfying(int literal, int watchIdx) {
+        assert Clause.getVariable(literals[watchIdx]) == Clause.getVariable(literal);
         for (int i = 2; i < literals.length; i++) {
             int newLiteral = literals[i];
             if (!formula.isConflicted(newLiteral)) {
-                int oldLiteral = literals[watchIndex];
-                literals[watchIndex] = newLiteral;
+                int oldLiteral = literals[watchIdx];
+                literals[watchIdx] = newLiteral;
                 literals[i] = oldLiteral;
                 return newLiteral;
             }
         }
-        if (isUnit()) return MADE_UNIT;
+        if (formula.isIndetermined(literals[watchIdx^1])) return MADE_UNIT;
         return WATCH_UNCHANGED;
     }
     

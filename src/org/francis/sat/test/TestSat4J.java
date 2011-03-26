@@ -38,22 +38,24 @@ public class TestSat4J {
     
     public static void main(String[] args) throws Exception {
         long startTime = System.currentTimeMillis();
-//        runOneProblem();
+        if (args.length == 0) runOneProblem();
         if (args.length == 4) createTimedFormula(args);
-        if (args.length == 2) runCNFDir(args);
+        if (args.length == 3) runCNFDir(args);
         long totalTime = System.currentTimeMillis() - startTime;
         System.out.println(totalTime/1000);
     }
     
     public static void runOneProblem() throws IOException {
         WatchedFormulaFactory formulaFactory = new WatchedFormulaFactory();
-        generateFormulaeList(50, 400, formulaFactory);
-        compareWithSat4J(new WatchedSolverFactory(),formulaFactory,8,2,1024,null,null);
+        generateFormulaeList(3, 20, formulaFactory);
+        runMySolversSMPThreaded(new WatchedSolverFactory(),formulaFactory,1,2,1024,null,true,1000000);
+//        compareWithSat4J(new WatchedSolverFactory(),formulaFactory,8,2,1024,null,null);
     }
     
     public static void runCNFDir(String[] args) throws IOException {
         int processorCount = Integer.parseInt(args[0]);
         long timeout = Integer.parseInt(args[1])*MINUTES_TO_MILLIS;
+        String regression = args[2];
         int initHibernate = 2;
         int maxHibernate = 1024;
         if (args.length == 3) {
@@ -81,8 +83,12 @@ public class TestSat4J {
                 File runLoggingDir = ensureDir(formulaLoggingDir+"/"+threads);
                 WatchedFormulaFactory formulaFactory = new WatchedFormulaFactory();
                 org.francis.sat.io.DimacsReader.parseDimacsFile(formulaFile,formulaFactory);
-                runMySolversSMPThreaded(new WatchedSolverFactory(),formulaFactory,threads,initHibernate,maxHibernate,runLoggingDir,true,timeout);
-//                compareWithSat4J(new WatchedSolverFactory(),new WatchedFormulaFactory(),threads,initHibernate,maxHibernate,formulaFile,null);
+                if (regression.equals("-r")) {
+                    compareWithSat4J(new WatchedSolverFactory(),new WatchedFormulaFactory(),threads,initHibernate,maxHibernate,formulaFile,null);
+                }
+                else {
+                    runMySolversSMPThreaded(new WatchedSolverFactory(),formulaFactory,threads,initHibernate,maxHibernate,runLoggingDir,true,timeout);
+                }
             }
         }
     }
@@ -102,7 +108,7 @@ public class TestSat4J {
         Random rnd = new Random();
         while (count < 300) {
             int varNum = rnd.nextInt(randomVarNum)+staticVarNum;
-            int clauseNum = Math.round(((float)varNum)*4.25f);
+            int clauseNum = Math.round(((float)varNum)*4.3f);
             formulaFactory = new WatchedFormulaFactory();
             generateFormulaeList(varNum, clauseNum, formulaFactory);
             System.out.println(varNum+", "+clauseNum);
@@ -128,10 +134,15 @@ public class TestSat4J {
         Random rnd = new Random(System.currentTimeMillis());
         for (int j = 0; j < clauseNum; j++) {
             Set<Integer> clause = new HashSet<Integer>(3);
+            CLAUSE_ADD:
             while(clause.size() < 3) {
                 int d = rnd.nextInt(varNum) + 1;
                 d = rnd.nextBoolean() ? d : -d;
                 int l = Clause.literalFromDimacs(d);
+                for (int el : clause) {
+                    if (l == el || (l^1) == el)
+                        continue CLAUSE_ADD;
+                }
                 clause.add(l);
             }
             formulaFactory.addClause(new ArrayList<Integer>(clause));
@@ -258,6 +269,7 @@ public class TestSat4J {
                 else {
                     System.out.println("False Positive");
                 }
+                System.exit(-1);
             }
         } catch (FileNotFoundException e) {
             e.printStackTrace();
