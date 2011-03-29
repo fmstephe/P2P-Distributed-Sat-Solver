@@ -8,7 +8,9 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.Writer;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 
@@ -31,37 +33,87 @@ import org.sat4j.specs.TimeoutException;
 
 public class TestSat4J {
 
-    static final int MAXVAR = 130;// 100;
-    static final int NBCLAUSES = Math.round(((float)MAXVAR)*4.25f);// 425;
-    static final int FILE_NUM = 3;
-    static final int MINUTES_TO_MILLIS = 60000;
+    private static final int MAXVAR = 130;// 100;
+    private static final int NBCLAUSES = Math.round(((float)MAXVAR)*4.25f);// 425;
+    private static final int FILE_NUM = 3;
+    private static final int MINUTES_TO_MILLIS = 60000;
+    // (String) "single", "create", "test"
+    private static final String modeA = "--mode";
+    // (int)
+    private static final String processesA = "--processes";
+    // (int)
+    private static final String staticVarsA = "--staticVars";
+    // (int)
+    private static final String variableVarsA = "--variableVars";
+    // (int)
+    private static final String timeoutA = "--timeout";
+    // (String) "yes", "no", "y", "n"
+    private static final String regressionA = "--regression";
     
     public static void main(String[] args) throws Exception {
         long startTime = System.currentTimeMillis();
-        if (args.length == 0) runOneProblem();
-        if (args.length == 4) createTimedFormula(args);
-        if (args.length == 3) runCNFDir(args);
+        Map<String,String> argMap = processArgs(args);
+        String modeVal = getArg(argMap, modeA);
+        if (modeVal.equals("single")) single();
+        if (modeVal.equals("create")) create(argMap);
+        if (modeVal.equals("test")) test(argMap);
         long totalTime = System.currentTimeMillis() - startTime;
         System.out.println(totalTime/1000);
     }
     
-    public static void runOneProblem() throws IOException {
-        WatchedFormulaFactory formulaFactory = new WatchedFormulaFactory();
-        generateFormulaeList(3, 20, formulaFactory);
-        runMySolversSMPThreaded(new WatchedSolverFactory(),formulaFactory,1,2,1024,null,true,1000000);
-//        compareWithSat4J(new WatchedSolverFactory(),formulaFactory,8,2,1024,null,null);
+    private static Map<String,String> processArgs(String[] args) {
+        if (args.length != 1 && args.length%2 != 0) throw new IllegalArgumentException("Wrong number of arguments");
+        Map<String,String> argMap = new HashMap<String,String>();
+        if (args.length == 1) {
+            argMap.put(modeA, "test");
+            argMap.put(processesA, args[0]);
+            return argMap;
+        }
+        else {
+            for (int i = 0; i < args.length; i+=2) {
+                String name = args[i];
+                String value = args[i+1];
+                argMap.put(name.toLowerCase(), value.toLowerCase());
+            }
+            return argMap;
+        }
     }
     
-    public static void runCNFDir(String[] args) throws IOException {
-        int processorCount = Integer.parseInt(args[0]);
-        long timeout = Integer.parseInt(args[1])*MINUTES_TO_MILLIS;
-        String regression = args[2];
+    private static String getArg(Map<String,String> argMap, String argName) {
+        return argMap.get(argName) == null ? argMap.get(shortArgName(argName)) : argMap.get(argName);
+    }
+    
+    private static String shortArgName(String argName) {
+        if (argName.startsWith("-") && argName.length() == 2) return argName;
+        if (!(argName.startsWith("--") && argName.length() > 3)) throw new IllegalArgumentException("Not a valid argument name "+argName);
+        char[] charArray = {argName.charAt(0),argName.charAt(2)};
+        return new String(charArray);
+    }
+    
+    public static void single() throws IOException {
+        WatchedFormulaFactory formulaFactory = new WatchedFormulaFactory();
+        generateFormulaeList(3, 20, formulaFactory);
+//        runMySolversSMPThreaded(new WatchedSolverFactory(),formulaFactory,1,2,1024,null,true,1000000);
+        compareWithSat4J(new WatchedSolverFactory(),formulaFactory,8,2,1024,null,null);
+    }
+    
+    public static void test(Map<String,String> argMap) throws IOException {
+        String processesVal = getArg(argMap,processesA);
+        int processesNum = Integer.parseInt(processesVal);
+        String timeoutVal = getArg(argMap,timeoutA);
+        int timeoutNum;
+        if (timeoutVal == null) 
+            timeoutNum = 10;
+        else
+            timeoutNum = Integer.parseInt(timeoutVal);
+        String regressionVal = getArg(argMap,regressionA);
+        boolean regression;
+        if (regressionVal == null)
+            regression = false;
+        else
+            regression = regressionVal.equals("y") || regressionVal.equals("yes");
         int initHibernate = 2;
         int maxHibernate = 1024;
-        if (args.length == 3) {
-            initHibernate = Integer.parseInt(args[1]);
-            maxHibernate = Integer.parseInt(args[2]);
-        }
         String workingPath = System.getProperty("user.dir");
         File cnfDir = new File(workingPath+"/cnf");
         File logDir = new File(workingPath+"/logs");
@@ -79,15 +131,14 @@ public class TestSat4J {
                 String formulaDirName = formulaFile.getName().substring(0,formulaFile.getName().indexOf('.'));
                 String formulaLoggingDir = timeBasedLogDir+"/"+formulaDirName;
                 ensureDir(formulaLoggingDir);
-                int threads = processorCount;
-                File runLoggingDir = ensureDir(formulaLoggingDir+"/"+threads);
+                File runLoggingDir = ensureDir(formulaLoggingDir+"/"+processesNum);
                 WatchedFormulaFactory formulaFactory = new WatchedFormulaFactory();
                 org.francis.sat.io.DimacsReader.parseDimacsFile(formulaFile,formulaFactory);
-                if (regression.equals("-r")) {
-                    compareWithSat4J(new WatchedSolverFactory(),new WatchedFormulaFactory(),threads,initHibernate,maxHibernate,formulaFile,null);
+                if (regression) {
+                    compareWithSat4J(new WatchedSolverFactory(),new WatchedFormulaFactory(),processesNum,initHibernate,maxHibernate,formulaFile,null);
                 }
                 else {
-                    runMySolversSMPThreaded(new WatchedSolverFactory(),formulaFactory,threads,initHibernate,maxHibernate,runLoggingDir,true,timeout);
+                    runMySolversSMPThreaded(new WatchedSolverFactory(),formulaFactory,processesNum,initHibernate,maxHibernate,runLoggingDir,true,timeoutNum);
                 }
             }
         }
@@ -97,23 +148,27 @@ public class TestSat4J {
      * @param args
      * @throws IOException
      */
-    public static void createTimedFormula(String[] args) throws IOException {
-        int threads = Integer.parseInt(args[0]);
-        int staticVarNum = Integer.parseInt(args[1]);
-        int randomVarNum = Integer.parseInt(args[2]);
-        int timeout = Integer.parseInt(args[3])*MINUTES_TO_MILLIS; // timeout in minutes
+    public static void create(Map<String,String> argMap) throws IOException {
+        String threadVal = getArg(argMap,processesA);
+        int threads = Integer.parseInt(threadVal);
+        String staticVarsVal = getArg(argMap,staticVarsA);
+        int staticVarNum = Integer.parseInt(staticVarsVal);
+        String variableVarsVal = getArg(argMap,variableVarsA);
+        int variableVarsNum = Integer.parseInt(variableVarsVal);
+        String timeoutVal = getArg(argMap,timeoutA);
+        int timeoutNum = Integer.parseInt(timeoutVal);
         String workingPath = System.getProperty("user.dir");
         int count = 0;
         WatchedFormulaFactory formulaFactory = null;
         Random rnd = new Random();
         while (count < 300) {
-            int varNum = rnd.nextInt(randomVarNum)+staticVarNum;
+            int varNum = rnd.nextInt(variableVarsNum)+staticVarNum;
             int clauseNum = Math.round(((float)varNum)*4.3f);
             formulaFactory = new WatchedFormulaFactory();
             generateFormulaeList(varNum, clauseNum, formulaFactory);
             System.out.println(varNum+", "+clauseNum);
-            long runTime = runMySolversSMPThreaded(new WatchedSolverFactory(),formulaFactory,threads,2,1024,null,true,(timeout)+1);
-            if (runTime >= timeout) continue;
+            long runTime = runMySolversSMPThreaded(new WatchedSolverFactory(),formulaFactory,threads,2,1024,null,true,(timeoutNum)+1);
+            if (runTime >= timeoutNum) continue;
             long runCatagory = runTime/MINUTES_TO_MILLIS; // Give number of minutes for run
             String path = workingPath+"/cnf/"+runCatagory+"-"+(runCatagory+1)+"_minutes";
             ensureDir(path);
