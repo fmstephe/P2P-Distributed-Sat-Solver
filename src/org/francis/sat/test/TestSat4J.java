@@ -62,7 +62,7 @@ public class TestSat4J {
     }
     
     private static Map<String,String> processArgs(String[] args) {
-        if (args.length != 1 && args.length%2 != 0) throw new IllegalArgumentException("Wrong number of arguments");
+        if (args.length == 0 || (args.length != 1 && args.length%2 != 0)) throw new IllegalArgumentException("Wrong number of arguments");
         Map<String,String> argMap = new HashMap<String,String>();
         if (args.length == 1) {
             argMap.put(modeA, "test");
@@ -93,8 +93,8 @@ public class TestSat4J {
     public static void single() throws IOException {
         WatchedFormulaFactory formulaFactory = new WatchedFormulaFactory();
         generateFormulaeList(3, 20, formulaFactory);
-//        runMySolversSMPThreaded(new WatchedSolverFactory(),formulaFactory,1,2,1024,null,true,1000000);
-        compareWithSat4J(new WatchedSolverFactory(),formulaFactory,8,2,1024,null,null);
+        runMySolversSMPThreaded(new WatchedSolverFactory(),formulaFactory,1,2,1024,null,true,1000000);
+//        compareWithSat4J(new WatchedSolverFactory(),formulaFactory,8,2,1024,null,null);
     }
     
     public static void test(Map<String,String> argMap) throws IOException {

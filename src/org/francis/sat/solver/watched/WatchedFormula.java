@@ -3,15 +3,15 @@ package org.francis.sat.solver.watched;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.francis.sat.collections.HopScotchList;
 import org.francis.sat.solver.BooleanFormula;
 import org.francis.sat.solver.Clause;
 import org.francis.sat.solver.PriorityIntHeap;
 import org.francis.sat.solver.WorkSharer;
+import org.francis.sat.solver.watched.clauserepo.IWatchedClauseRepo;
+import org.francis.sat.solver.watched.clauserepo.SimpleWatchedClauseRepo;
 
 public class WatchedFormula implements BooleanFormula, WorkSharer, Serializable {
     
@@ -19,7 +19,7 @@ public class WatchedFormula implements BooleanFormula, WorkSharer, Serializable 
     
     private final int varNum, clauseNum;
     private final byte[] varVals;
-    private final WatchedClauseRepo watchedClauseRepo;
+    private final IWatchedClauseRepo watchedClauseRepo;
     private final List<WatchedClause> initUnitClauses;
     private final List<WatchedClause> initSatClauses;
     private WorkPath path;
@@ -31,51 +31,13 @@ public class WatchedFormula implements BooleanFormula, WorkSharer, Serializable 
         this.clauseNum = clauseNum;
         this.initUnitClauses = new ArrayList<WatchedClause>();
         this.initSatClauses = new ArrayList<WatchedClause>();
-        this.watchedClauseRepo = new WatchedClauseRepo(varNum);
+        this.watchedClauseRepo = new SimpleWatchedClauseRepo(varNum,this); // Unsafe release of object reference in constructor
         this.varVals = new byte[varNum+1];
         this.freeVars = new PriorityIntHeap(varNum);
     }
     
     public void init() {
         this.path = new WorkPath(this,varNum);
-        for (int i = 1; i < watchedClauseRepo.size();i++) {
-            HopScotchList<WatchedClause> clauses = watchedClauseRepo.getClauseListOneP(i);
-            for (int j = 0; j < clauses.size(); j++) {
-                WatchedClause clause = clauses.get(j);
-                int[] literals = clause.getLiterals();
-                for (int literal : literals) {
-                    int var = Clause.getVariable(literal);
-                    freeVars.incPriority(var, 1d);
-                }
-            }
-            clauses = watchedClauseRepo.getClauseListOneN(i);
-            for (int j = 0; j < clauses.size(); j++) {
-                WatchedClause clause = clauses.get(j);
-                int[] literals = clause.getLiterals();
-                for (int literal : literals) {
-                    int var = Clause.getVariable(literal);
-                    freeVars.incPriority(var, 1d);
-                }
-            }
-            clauses = watchedClauseRepo.getClauseListTwoP(i);
-            for (int j = 0; j < clauses.size(); j++) {
-                WatchedClause clause = clauses.get(j);
-                int[] literals = clause.getLiterals();
-                for (int literal : literals) {
-                    int var = Clause.getVariable(literal);
-                    freeVars.incPriority(var, 1d);
-                }
-            }
-            clauses = watchedClauseRepo.getClauseListTwoN(i);
-            for (int j = 0; j < clauses.size(); j++) {
-                WatchedClause clause = clauses.get(j);
-                int[] literals = clause.getLiterals();
-                for (int literal : literals) {
-                    int var = Clause.getVariable(literal);
-                    freeVars.incPriority(var, 1d);
-                }
-            }
-        }
         for (int i = 1; i <= varNum; i++) {
             freeVars.insert(i);
         }
@@ -100,6 +62,10 @@ public class WatchedFormula implements BooleanFormula, WorkSharer, Serializable 
             initUnitClauses.add(newClause);
         }
         else {
+            for (int literal : newClause.getLiterals()) {
+                int var = Clause.getVariable(literal);
+                freeVars.incPriority(var, 1d);
+            }
             watchedClauseRepo.addClause(newClause);
         }
     }
@@ -122,13 +88,13 @@ public class WatchedFormula implements BooleanFormula, WorkSharer, Serializable 
         return true;
     }
     
-    protected boolean isConflicted(int literal) {
+    public boolean isConflicted(int literal) {
         int val = varVals[Clause.getVariable(literal)];
         if (val == 0) return false;
         return (literal%2 == 0 && val == -1) || (literal%2 == 1 && val == 1);
     }
     
-    protected boolean isSatisfied(int literal) {
+    public boolean isSatisfied(int literal) {
         int val = varVals[Clause.getVariable(literal)];
         if (val == 0) return false;
         return (literal%2 == 0 && val == 1) || (literal%2 == 1 && val == -1);
@@ -250,34 +216,8 @@ public class WatchedFormula implements BooleanFormula, WorkSharer, Serializable 
 
     @Override
     public List<List<Integer>> getDimacsClauses() {
-        Set<WatchedClause> clauseSet = new HashSet<WatchedClause>();
-        for (int i = 1; i < watchedClauseRepo.size(); i++) {
-            HopScotchList<WatchedClause> watchedClauses = watchedClauseRepo.getClauseListOneP(i);
-            if (watchedClauses == null) continue;
-            for (int j = 0; j < watchedClauses.size(); j++) {
-                WatchedClause watchedClause = watchedClauses.get(j);
-                clauseSet.add(watchedClause);
-            }
-            watchedClauses = watchedClauseRepo.getClauseListOneN(i);
-            if (watchedClauses == null) continue;
-            for (int j = 0; j < watchedClauses.size(); j++) {
-                WatchedClause watchedClause = watchedClauses.get(j);
-                clauseSet.add(watchedClause);
-            }
-            watchedClauses = watchedClauseRepo.getClauseListTwoP(i);
-            if (watchedClauses == null) continue;
-            for (int j = 0; j < watchedClauses.size(); j++) {
-                WatchedClause watchedClause = watchedClauses.get(j);
-                clauseSet.add(watchedClause);
-            }
-            watchedClauses = watchedClauseRepo.getClauseListTwoN(i);
-            if (watchedClauses == null) continue;
-            for (int j = 0; j < watchedClauses.size(); j++) {
-                WatchedClause watchedClause = watchedClauses.get(j);
-                clauseSet.add(watchedClause);
-            }
-        }
         List<List<Integer>> clauses = new ArrayList<List<Integer>>();
+        Set<WatchedClause> clauseSet = watchedClauseRepo.getClauses();
         for (WatchedClause watchedClause : clauseSet) {
             clauses.add(watchedClause.getDimacsClause());
         }

@@ -47,15 +47,6 @@ public class WatchedClause extends Clause implements Serializable{
             return literals[watchOne];
     }
     
-    private boolean isUnit() {
-        boolean watchOneCon = formula.isConflicted(literals[watchOne]);
-        boolean watchTwoInd = formula.isIndetermined(literals[watchTwo]);
-        if (watchOneCon && watchTwoInd) return true;
-        boolean watchTwoCon = formula.isConflicted(literals[watchTwo]);
-        boolean watchOneInd = formula.isIndetermined(literals[watchOne]);
-        return (watchTwoCon && watchOneInd);
-    }
-
     public int satisfying(int literal, int watchIdx) {
         assert Clause.getVariable(literals[watchIdx]) == Clause.getVariable(literal);
         for (int i = 2; i < literals.length; i++) {
@@ -110,9 +101,8 @@ public class WatchedClause extends Clause implements Serializable{
         return dimacsClause;
     }
     
+    // NB: Unsafe sharing of literals - don't be careless with this array, caller
     public int[] getLiterals() {
-        int[] copyLiterals = new int[literals.length];
-        System.arraycopy(literals, 0, copyLiterals, 0, literals.length);
-        return copyLiterals;
+        return literals;
     }
 }

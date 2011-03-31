@@ -28,7 +28,8 @@ public class WatchedSolver implements SatSolver {
                 return false;
             }
             int var = formula.chooseVariable();
-            formula.tryLiteral(Clause.posLiteral(var));
+            int literal = Clause.posLiteral(var);
+            formula.tryLiteral(literal);
         }
     }
 }

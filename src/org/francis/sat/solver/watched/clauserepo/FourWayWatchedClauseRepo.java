@@ -1,15 +1,18 @@
-package org.francis.sat.solver.watched;
+package org.francis.sat.solver.watched.clauserepo;
 
 import static org.francis.sat.solver.watched.WatchedClause.watchOne;
 import static org.francis.sat.solver.watched.WatchedClause.watchTwo;
 
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.francis.sat.collections.HopScotchList;
 import org.francis.sat.solver.Clause;
+import org.francis.sat.solver.watched.WatchedClause;
 
-public class WatchedClauseRepo {
+public class FourWayWatchedClauseRepo implements IWatchedClauseRepo {
     
     private final HopScotchList<WatchedClause>[] watchedClauseOneP;
     private final HopScotchList<WatchedClause>[] watchedClauseOneN;
@@ -18,7 +21,7 @@ public class WatchedClauseRepo {
     private final static int originIdx = 1;
     
     @SuppressWarnings("unchecked")
-    public WatchedClauseRepo(final int varNum) {
+    public FourWayWatchedClauseRepo(final int varNum) {
         this.watchedClauseOneP = new HopScotchList[varNum+1];
         this.watchedClauseOneN = new HopScotchList[varNum+1];
         this.watchedClauseTwoP = new HopScotchList[varNum+1];
@@ -35,6 +38,10 @@ public class WatchedClauseRepo {
         }
     }
     
+    /* (non-Javadoc)
+     * @see org.francis.sat.solver.watched.clauserepo.IWatchedClauseRepo#addClause(org.francis.sat.solver.watched.WatchedClause)
+     */
+    @Override
     public void addClause(WatchedClause clause) {
         int[] watches = clause.getWatchedLiterals();
         int lit1 = watches[watchOne];
@@ -52,7 +59,7 @@ public class WatchedClauseRepo {
         assert consistent();
     }
     
-    public void watchClause(int literal, WatchedClause clause, int watchIdx) {
+    private void watchClause(int literal, WatchedClause clause, int watchIdx) {
         int var = Clause.getVariable(literal);
         if (watchIdx == watchOne) {
             if (Clause.isPosLiteral(literal))
@@ -68,6 +75,10 @@ public class WatchedClauseRepo {
         }
     }
     
+    /* (non-Javadoc)
+     * @see org.francis.sat.solver.watched.clauserepo.IWatchedClauseRepo#setLiteral(int, java.util.List)
+     */
+    @Override
     public void setLiteral(int literal, List<WatchedClause> unitClauses) {
         if (Clause.isPosLiteral(literal)) {
             setLiteral(literal,unitClauses,watchedClauseOneN,watchOne);
@@ -95,24 +106,35 @@ public class WatchedClauseRepo {
         }
     }
     
+    /* (non-Javadoc)
+     * @see org.francis.sat.solver.watched.clauserepo.IWatchedClauseRepo#size()
+     */
+    @Override
     public int size() {
         return watchedClauseOneP.length;
     }
     
-    public HopScotchList<WatchedClause> getClauseListOneP(int i) {
-        return watchedClauseOneP[i];
+    /* (non-Javadoc)
+     * @see org.francis.sat.solver.watched.clauserepo.IWatchedClauseRepo#getClauses()
+     */
+    @Override
+    public Set<WatchedClause> getClauses() {
+        Set<WatchedClause> clauseSet = new HashSet<WatchedClause>();
+        getClauses(watchedClauseOneN, clauseSet);
+        getClauses(watchedClauseOneP, clauseSet);
+        getClauses(watchedClauseTwoN, clauseSet);
+        getClauses(watchedClauseTwoP, clauseSet);
+        return clauseSet;
     }
     
-    public HopScotchList<WatchedClause> getClauseListOneN(int i) {
-        return watchedClauseOneN[i];
-    }
-    
-    public HopScotchList<WatchedClause> getClauseListTwoP(int i) {
-        return watchedClauseTwoP[i];
-    }
-    
-    public HopScotchList<WatchedClause> getClauseListTwoN(int i) {
-        return watchedClauseTwoN[i];
+    private void getClauses(HopScotchList<WatchedClause>[] watchArray, Set<WatchedClause> clauses) {
+        for (int i = 0; i < watchArray.length; i++) {
+            HopScotchList<WatchedClause> clauseList = watchArray[i];
+            for (int j = 0; j < clauseList.size(); j++) {
+                WatchedClause watchedClause = clauseList.get(j);
+                clauses.add(watchedClause);
+            }
+        }
     }
     
     private boolean consistent() {
