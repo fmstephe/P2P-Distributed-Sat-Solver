@@ -3,12 +3,10 @@ package org.francis.sat.solver.watched;
 import org.francis.sat.network.NetworkManager;
 import org.francis.sat.solver.BooleanFormula;
 import org.francis.sat.solver.SatSolver;
-import org.francis.sat.solver.SatSolverFactory;
 
-public class WatchedSolverFactory implements SatSolverFactory {
+public class WatchedSolverFactory {
 
-    @Override
-    public SatSolver createSatSolver(NetworkManager networkManager, BooleanFormula formula) {
-        return new WatchedSolver(networkManager,(WatchedFormula)formula);
+    public SatSolver createSatSolver(NetworkManager networkManager, BooleanFormula formula,boolean firstWorkingSolver) {
+        return new WatchedSolver(networkManager,(WatchedFormula)formula,firstWorkingSolver);
     }
 }

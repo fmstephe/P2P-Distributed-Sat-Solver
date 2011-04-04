@@ -42,17 +42,15 @@ public class NetworkManager {
     private int hibernationTime;
     private NetworkState state;
     private BufferedWriter logFileWriter;
-    private boolean allowEmptyOnce;
     private long managementCount;
     
-    public NetworkManager(Communicator comm, int networkSize, int workSharingThreshold, int initHibernate, int maxHibernate, boolean allowEmptyOnce, String logFilePath) {
+    public NetworkManager(Communicator comm, int networkSize, int workSharingThreshold, int initHibernate, int maxHibernate, String logFilePath) {
         super();
         this.comm = comm;
         this.networkSize = networkSize;
         this.hibernationTime = initHibernate;
         this.state = NetworkState.AWAKE;
         this.workSharingThreshold = workSharingThreshold;
-        this.allowEmptyOnce = allowEmptyOnce;
         this.managementCount = 0;
         this.initHibernate = initHibernate;
         this.maxHibernate = maxHibernate;
@@ -60,10 +58,10 @@ public class NetworkManager {
         log(comm.toString()+"\n"+"Pause time in milliseconds\n",true);
     }
     
-    public NetworkManager(Communicator comm, int networkSize, int workSharingThreshold, boolean allowEmptyOnce, String logFilePath) {
+    public NetworkManager(Communicator comm, int networkSize, int workSharingThreshold, String logFilePath) {
         // initial hibernation time is defaulted to 2 millis
         // max hibernation time is defaulted to 1024 millis
-        this(comm,networkSize,workSharingThreshold,2,1024,allowEmptyOnce,logFilePath);
+        this(comm,networkSize,workSharingThreshold,2,1024,logFilePath);
     }
 
     private BufferedWriter generateLogFile(String logFilePath, String logName) {
@@ -145,18 +143,7 @@ public class NetworkManager {
 
     private NetworkState manageNetworkInt(WorkSharer workSharer, NetworkState previousState) {
         assert previousState == NetworkState.AWAKE;
-        if (allowEmptyOnce) { // This is used once for the initial worker
-            allowEmptyOnce = false;
-            if (workSharer.isComplete()) {
-                return modelFound(); 
-            }
-            if (workSharer.isTriviallyUnsat()) {
-                return triviallyUnsat(previousState);
-            }
-            else {
-                return NetworkState.AWAKE;
-            }
-        }
+        if (workSharer.isTriviallyUnsat()) return triviallyUnsat(previousState);
         if (workSharer.isComplete()) return modelFound();
         NetworkState checkMailState = checkMailbox(workSharer, previousState);
         assert !isHibernating(checkMailState);

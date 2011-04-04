@@ -8,20 +8,24 @@ public class WatchedSolver implements SatSolver {
     
     private WatchedFormula formula;
     private final NetworkManager networkManager;
+    private final boolean firstWorkingSolver;
     
-    public WatchedSolver(NetworkManager networkManager, WatchedFormula formula) {
+    public WatchedSolver(NetworkManager networkManager, WatchedFormula formula, boolean firstWorkingSolver) {
         this.networkManager = networkManager;
         this.formula = formula;
-    }
-    
-    public WatchedSolver(NetworkManager networkManager) {
-        this.networkManager = networkManager;
+        this.firstWorkingSolver = firstWorkingSolver;
     }
     
     /* (non-Javadoc)
      * @see org.francis.sat.solver.ISatSolver#solve()
      */
+    @Override
     public boolean solve() {
+        if (firstWorkingSolver) {
+            int var = formula.chooseVariable();
+            int literal = Clause.posLiteral(var);
+            formula.tryLiteral(literal);
+        }
         while(true) {
             boolean stillRunning = networkManager.manageNetwork(formula);
             if (!stillRunning) {

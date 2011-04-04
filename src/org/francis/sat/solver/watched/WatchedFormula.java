@@ -10,8 +10,8 @@ import org.francis.sat.solver.BooleanFormula;
 import org.francis.sat.solver.Clause;
 import org.francis.sat.solver.PriorityIntHeap;
 import org.francis.sat.solver.WorkSharer;
+import org.francis.sat.solver.watched.clauserepo.FourWayWatchedClauseRepo;
 import org.francis.sat.solver.watched.clauserepo.IWatchedClauseRepo;
-import org.francis.sat.solver.watched.clauserepo.SimpleWatchedClauseRepo;
 
 public class WatchedFormula implements BooleanFormula, WorkSharer, Serializable {
     
@@ -31,7 +31,7 @@ public class WatchedFormula implements BooleanFormula, WorkSharer, Serializable 
         this.clauseNum = clauseNum;
         this.initUnitClauses = new ArrayList<WatchedClause>();
         this.initSatClauses = new ArrayList<WatchedClause>();
-        this.watchedClauseRepo = new SimpleWatchedClauseRepo(varNum,this); // Unsafe release of object reference in constructor
+        this.watchedClauseRepo = new FourWayWatchedClauseRepo(varNum); // Unsafe release of object reference in constructor
         this.varVals = new byte[varNum+1];
         this.freeVars = new PriorityIntHeap(varNum);
     }

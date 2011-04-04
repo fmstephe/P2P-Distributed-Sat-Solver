@@ -39,7 +39,7 @@ public class SMPThreadedWatchedSolverFactory {
         RunnableSolver[] rSolvers = new RunnableSolver[networkManagers.length];
         for (int i = 0; i < networkManagers.length; i++) {
             NetworkManager nwm = networkManagers[i];
-            SatSolver solver = solverFactory.createSatSolver(nwm,formulaFactory.retrieveFormula());
+            SatSolver solver = solverFactory.createSatSolver(nwm,formulaFactory.retrieveFormula(),(i==0));
             rSolvers[i] = new RunnableSolver(solver);
         }
         return rSolvers;
@@ -54,7 +54,7 @@ public class SMPThreadedWatchedSolverFactory {
         messageManager = new SMPMessageManager(workers);
         if (threadCount == 1) {
             Communicator comm = new SMPCommunicator(messageManager,null,null,workers[0]);
-            networkManagers[0] = new NetworkManager(comm,networkSize,workSharingThreshold,initHibernate,maxHibernate,true,logFilePath);
+            networkManagers[0] = new NetworkManager(comm,networkSize,workSharingThreshold,initHibernate,maxHibernate,logFilePath);
         }
         else {
             for (int i = 0; i < threadCount; i++) {
@@ -65,7 +65,7 @@ public class SMPThreadedWatchedSolverFactory {
                     comm = new SMPCommunicator(messageManager,workers[i-1],null,workers[i]);
                 else
                     comm = new SMPCommunicator(messageManager,workers[i-1],workers[i+1],workers[i]);
-                networkManagers[i] = new NetworkManager(comm,networkSize,workSharingThreshold,initHibernate,maxHibernate,(i==0),logFilePath);
+                networkManagers[i] = new NetworkManager(comm,networkSize,workSharingThreshold,initHibernate,maxHibernate,logFilePath);
             }
         }
         return networkManagers;
