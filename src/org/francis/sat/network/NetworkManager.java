@@ -143,7 +143,6 @@ public class NetworkManager {
 
     private NetworkState manageNetworkInt(WorkSharer workSharer, NetworkState previousState) {
         assert previousState == NetworkState.AWAKE;
-        if (workSharer.isTriviallyUnsat()) return triviallyUnsat(previousState);
         if (workSharer.isComplete()) return modelFound();
         NetworkState checkMailState = checkMailbox(workSharer, previousState);
         assert !isHibernating(checkMailState);
@@ -335,10 +334,10 @@ public class NetworkManager {
         return previousState;
     }
     
-    public NetworkState triviallyUnsat(NetworkState previousState) {
+    public void triviallyUnsat() {
         comm.sendResult(new SatResult(false));
         comm.broadcastShutDownNetwork();
-        return shutdown();
+        shutdown();
     }
 
     public NetworkState networkExhausted(NetworkState previousState) {

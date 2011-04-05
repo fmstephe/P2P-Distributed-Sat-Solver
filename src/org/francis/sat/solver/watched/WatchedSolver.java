@@ -22,6 +22,10 @@ public class WatchedSolver implements SatSolver {
     @Override
     public boolean solve() {
         if (firstWorkingSolver) {
+            if (formula.isTriviallyUnsat()) {
+                networkManager.triviallyUnsat();
+                return false;
+            }
             int var = formula.chooseVariable();
             int literal = Clause.posLiteral(var);
             formula.tryLiteral(literal);
