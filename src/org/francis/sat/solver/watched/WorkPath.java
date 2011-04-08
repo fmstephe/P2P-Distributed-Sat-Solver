@@ -8,38 +8,58 @@ import org.francis.sat.solver.Clause;
 
 public class WorkPath {
 
-    private List<PathElement> path;
+    private static final int BRANCHABLE = 1;
+    private static final int UNIT = 2;
+    private static final int SHARED = 4;
+    
     private final WatchedFormula formula;
+    private final int[] path;
+    private int idx;
     private int workSize;
     
     public WorkPath(WatchedFormula formula, int varNum) {
         this.formula = formula;
-        this.path = new ArrayList<PathElement>();
+        this.path = new int[varNum*2];
+        this.idx = 0;
         this.workSize = 0;
     }
     
     public void addToPath(int literal, boolean branchable, boolean unit) {
         assert workSize == countWorkSize();
-        PathElement e = new PathElement(literal,branchable,unit,false);
+        int workState = 0;
+        workState |= branchable ? BRANCHABLE : 0;
+        workState |= unit ? UNIT : 0;
         int var = Clause.getVariable(literal);
-        assert !path.contains(e);
+        path[idx] = literal;
+        path[idx+1] = workState;
+        idx += 2;
+        assert !containsLiteral(literal);
         assert !formula.freeVars.contains(var);
-        path.add(e);
         if (branchable && !unit) workSize++;
         assert workSize == countWorkSize();
     }
 
+    private boolean containsLiteral(int literal) {
+        for (int i = 0; i < idx; i += 2) {
+            if (path[i] == literal) return true;
+        }
+        return false;
+    }
+
     public int backtrack() {
-        assert workSize == countWorkSize();
-        while (!path.isEmpty()) {
+        assert idx != 0;
+        while (idx != 0) {
+            assert idx%2 == 0;
             assert workSize == countWorkSize();
             assert formula.checkState();
-            PathElement e = path.remove(path.size()-1);
-            formula.resetLiteral(e.literal);
-            if (e.branchable && !e.unit && !e.shared) workSize--;
+            idx -= 2;
+            int literal = path[idx];
+            int workState = path[idx+1];
+            formula.resetLiteral(path[idx]);
+            if (workState == BRANCHABLE) workSize--;
             assert workSize == countWorkSize();
-            if (e.branchable && !e.shared) {
-                return e.literal;
+            if (workState == (BRANCHABLE | SHARED)) {
+                return literal;
             }
         }
         assert workSize == 0;
@@ -153,57 +173,5 @@ public class WorkPath {
     @Override
     public String toString() {
         return path.toString();
-    }
-
-    private static class PathElement implements Serializable {
-        private static final long serialVersionUID = -7816551849274761489L;
-        public final int literal;
-        public final boolean branchable;
-        public final boolean unit;
-        public final boolean shared;
-        
-        public PathElement(int literal, boolean branchable, boolean unit, boolean shared) {
-            assert !(branchable && unit);
-            this.literal = literal;
-            this.branchable = branchable;
-            this.shared = shared;
-            this.unit = unit;
-        }
-        
-        public PathElement copyPathElement() {
-            PathElement newE = new PathElement(this.literal,this.branchable,this.unit,this.shared);
-            return newE;
-        }
-        
-        public PathElement copyPathElement(boolean shared) {
-            PathElement newE = new PathElement(this.literal,this.branchable,this.unit,shared);
-            return newE;
-        }
-        
-        @Override
-        public int hashCode() {
-            final int prime = 31;
-            int result = 1;
-            result = prime * result + Math.abs(literal);
-            return result;
-        }
-
-        @Override
-        public boolean equals(Object obj) {
-            if (this == obj)
-                return true;
-            if (obj == null)
-                return false;
-            if (getClass() != obj.getClass())
-                return false;
-            PathElement other = (PathElement) obj;
-            if (Math.abs(literal) != Math.abs(other.literal))
-                return false;
-            return true;
-        }
-        
-        public String toString() {
-            return literal + "," + (branchable ? "br" : "nb") +","+ (shared ? "sh" : "ns") +","+ (unit ? "un" : "nu");
-        }
     }
 }
