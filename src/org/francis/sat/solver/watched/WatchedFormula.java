@@ -101,6 +101,7 @@ public class WatchedFormula implements BooleanFormula, WorkSharer, Serializable 
     }
     
     public boolean isIndetermined(int literal) {
+        assert !(varVals[Clause.getVariable(literal)] == 0 && freeVars.contains(Clause.getVariable(literal)));
         return varVals[Clause.getVariable(literal)] == 0;
     }
     
@@ -134,7 +135,7 @@ public class WatchedFormula implements BooleanFormula, WorkSharer, Serializable 
         assert checkState();
     }
     
-    protected void setLiteralForNewPath(int literal, boolean branchable) {
+    public void setLiteralForNewPath(int literal, boolean branchable) {
         setLiteral0(literal,new ArrayList<WatchedClause>());
     }
     
@@ -199,7 +200,7 @@ public class WatchedFormula implements BooleanFormula, WorkSharer, Serializable 
         return isTriviallyUnsat;
     }
     
-    protected boolean checkState() {
+    public boolean checkState() {
         assert varNum - freeVars.size() == path.assignCount();
         return true;
     }
