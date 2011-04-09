@@ -1,11 +1,11 @@
-package org.francis.sat.solver.watched;
+package org.francis.sat.solver.watched.workpath;
 
 import java.util.ArrayList;
 import java.util.List;
 
-import org.francis.sat.solver.Clause;
+import org.francis.sat.solver.watched.WatchedFormula;
 
-public class WorkPath {
+public class ObjectWorkPath implements IWorkPath {
 
     private static final int BRANCHABLE = 1;
     private static final int UNIT = 2;
@@ -16,17 +16,21 @@ public class WorkPath {
     private int idx;
     private int workSize;
     
-    public WorkPath(WatchedFormula formula, int varNum) {
+    public ObjectWorkPath(WatchedFormula formula, int varNum) {
         this.formula = formula;
         this.path = new int[varNum*2];
         this.idx = 0;
         this.workSize = 0;
     }
     
+    /* (non-Javadoc)
+     * @see org.francis.sat.solver.watched.workpath.IWork#addToPath(int, boolean, boolean)
+     */
+    @Override
     public void addToPath(int literal, boolean branchable, boolean unit) {
         assert workSize == countWorkSize();
         assert !containsLiteral(literal);
-        assert !formula.freeVars.contains(Clause.getVariable(literal));
+        assert !formula.isIndetermined(literal);
         int workState = 0;
         workState |= branchable ? BRANCHABLE : 0;
         workState |= unit ? UNIT : 0;
@@ -46,6 +50,10 @@ public class WorkPath {
         return false;
     }
 
+    /* (non-Javadoc)
+     * @see org.francis.sat.solver.watched.workpath.IWork#backtrack()
+     */
+    @Override
     public int backtrack() {
         assert idx != 0;
         while (idx != 0) {
@@ -67,6 +75,10 @@ public class WorkPath {
         return -1;
     }
 
+    /* (non-Javadoc)
+     * @see org.francis.sat.solver.watched.workpath.IWork#giveWork()
+     */
+    @Override
     public List<?> giveWork() {
         assert workSize == countWorkSize();
         int[] oldPath = copyPathForAsserts();
@@ -164,7 +176,10 @@ public class WorkPath {
         return true;
     }
 
-    @SuppressWarnings("unchecked")
+    /* (non-Javadoc)
+     * @see org.francis.sat.solver.watched.workpath.IWork#receiveWork(java.util.List)
+     */
+    @Override
     public void receiveWork(List<?> receivedWork) {
         assert workSize == 0;
         for (int i = 0; i < receivedWork.size(); i += 2) {
@@ -180,11 +195,19 @@ public class WorkPath {
         assert workSize == countWorkSize();
     }
 
+    /* (non-Javadoc)
+     * @see org.francis.sat.solver.watched.workpath.IWork#workSize()
+     */
+    @Override
     public int workSize() {
         assert workSize == countWorkSize();
         return workSize;
     }
     
+    /* (non-Javadoc)
+     * @see org.francis.sat.solver.watched.workpath.IWork#assignCount()
+     */
+    @Override
     public int assignCount() {
         return idx/2;
     }

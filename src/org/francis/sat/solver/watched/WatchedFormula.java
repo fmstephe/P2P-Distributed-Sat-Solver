@@ -12,6 +12,8 @@ import org.francis.sat.solver.PriorityIntHeap;
 import org.francis.sat.solver.WorkSharer;
 import org.francis.sat.solver.watched.clauserepo.FourWayWatchedClauseRepo;
 import org.francis.sat.solver.watched.clauserepo.IWatchedClauseRepo;
+import org.francis.sat.solver.watched.workpath.IWorkPath;
+import org.francis.sat.solver.watched.workpath.PrimitiveWorkPath;
 
 public class WatchedFormula implements BooleanFormula, WorkSharer, Serializable {
     
@@ -22,7 +24,7 @@ public class WatchedFormula implements BooleanFormula, WorkSharer, Serializable 
     private final IWatchedClauseRepo watchedClauseRepo;
     private final List<WatchedClause> initUnitClauses;
     private final List<WatchedClause> initSatClauses;
-    private WorkPath path;
+    private IWorkPath path;
     protected final PriorityIntHeap freeVars;
     private boolean isTriviallyUnsat = false;
     
@@ -37,7 +39,7 @@ public class WatchedFormula implements BooleanFormula, WorkSharer, Serializable 
     }
     
     public void init() {
-        this.path = new WorkPath(this,varNum);
+        this.path = new PrimitiveWorkPath(this,varNum);
         for (int i = 1; i <= varNum; i++) {
             freeVars.insert(i);
         }
@@ -101,7 +103,7 @@ public class WatchedFormula implements BooleanFormula, WorkSharer, Serializable 
     }
     
     public boolean isIndetermined(int literal) {
-        assert !(varVals[Clause.getVariable(literal)] == 0 && freeVars.contains(Clause.getVariable(literal)));
+        assert !((varVals[Clause.getVariable(literal)] != 0) && freeVars.contains(Clause.getVariable(literal)));
         return varVals[Clause.getVariable(literal)] == 0;
     }
     
